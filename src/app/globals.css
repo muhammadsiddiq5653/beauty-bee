@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fdf3f9;
+  --foreground: #1a1a1a;
+  --pink: #e91e8c;
+  --pink-dark: #8b0057;
+  --pink-light: #fde8f4;
+  --gold: #f5a623;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #e91e8c44; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #e91e8c; }
