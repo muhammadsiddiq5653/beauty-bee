@@ -15,6 +15,8 @@ import StoreNav from "@/components/StoreNav";
 import CartDrawer from "@/components/CartDrawer";
 import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
 import ReviewsSection from "@/components/ReviewsSection";
+import UrgencyBadge from "@/components/UrgencyBadge";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import type { Product } from "@/types";
 
 export default function ProductDetailPage() {
@@ -87,6 +89,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-[#fdf3f9]">
       <StoreNav />
       <CartDrawer />
+      <WhatsAppButton />
 
       <div className="max-w-2xl mx-auto px-4 py-4 pb-24">
         {/* Breadcrumb */}
@@ -148,6 +151,9 @@ export default function ProductDetailPage() {
                 <span className="text-xs text-gray-400 ml-1">500+ happy customers</span>
               </div>
             </div>
+
+            {/* Urgency badges */}
+            <UrgencyBadge productId={product.id} stock={product.stock} />
 
             {/* Description */}
             {product.description && (

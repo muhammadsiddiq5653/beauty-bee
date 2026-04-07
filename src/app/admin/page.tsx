@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ShoppingBag, TrendingUp, Package, Truck,
   Clock, CheckCircle, XCircle, AlertCircle,
-  ChevronRight, RefreshCw
+  ChevronRight, RefreshCw, Tag
 } from "lucide-react";
 import { getRecentOrders } from "@/lib/firestore";
 import type { Order } from "@/types";
@@ -92,12 +92,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
         {[
           { href: "/admin/orders",    label: "View All Orders",  icon: <ShoppingBag size={18}/>, color: "border-blue-200 text-blue-700 hover:bg-blue-50" },
           { href: "/admin/postex",    label: "Book on PostEx",   icon: <Truck size={18}/>,       color: "border-purple-200 text-purple-700 hover:bg-purple-50" },
           { href: "/admin/products",  label: "Manage Products",  icon: <Package size={18}/>,     color: "border-green-200 text-green-700 hover:bg-green-50" },
           { href: "/admin/analytics", label: "View Analytics",   icon: <TrendingUp size={18}/>,  color: "border-orange-200 text-orange-700 hover:bg-orange-50" },
+          { href: "/admin/promos",    label: "Promo Codes",      icon: <Tag size={18}/>,         color: "border-pink-200 text-pink-700 hover:bg-pink-50" },
         ].map(a => (
           <Link key={a.href} href={a.href}
             className={`flex items-center gap-2 border-2 rounded-xl px-3 py-3 font-semibold text-sm transition-colors ${a.color}`}>

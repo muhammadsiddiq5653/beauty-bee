@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cart";
 import StoreNav from "@/components/StoreNav";
 import CartDrawer from "@/components/CartDrawer";
 import PromoCodeField from "@/components/PromoCodeField";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 const DELIVERY = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 const WA = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "923000000000";
@@ -189,6 +190,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-[#fdf3f9]">
       <StoreNav />
       <CartDrawer />
+      <WhatsAppButton />
 
       <div className="max-w-lg mx-auto px-4 py-4 pb-16">
         {/* Back */}

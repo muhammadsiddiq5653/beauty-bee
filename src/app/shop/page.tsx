@@ -14,6 +14,8 @@ import StoreNav from "@/components/StoreNav";
 import CartDrawer from "@/components/CartDrawer";
 import PromoBanner from "@/components/PromoBanner";
 import ReviewsSection from "@/components/ReviewsSection";
+import UrgencyBadge from "@/components/UrgencyBadge";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import type { Product, Bundle } from "@/types";
 
 const DELIVERY = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
@@ -128,6 +130,9 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
             {!selectedShade && <span className="text-[10px] text-gray-400">tap shade</span>}
           </div>
         )}
+
+        {/* Urgency badge */}
+        <UrgencyBadge productId={product.id} stock={product.stock} compact={true} />
 
         {/* Qty + Add */}
         <div className="flex items-center gap-1.5 pt-0.5">
@@ -277,6 +282,7 @@ export default function ShopPage() {
     <div className="min-h-screen bg-[#fdf3f9]">
       <StoreNav />
       <CartDrawer />
+      <WhatsAppButton />
       <AnnouncementTicker />
 
       {/* ── Hero Banner ── */}

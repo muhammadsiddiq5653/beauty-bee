@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Package, Plus, Edit2, Trash2, X, ToggleLeft, ToggleRight,
-  ChevronDown, ChevronUp, Tag, Gift, Save, RefreshCw, AlertCircle
+  ChevronDown, ChevronUp, Tag, Gift, Save, RefreshCw, AlertCircle, Percent
 } from "lucide-react";
 import {
   getProducts, saveProduct, deleteProduct,
@@ -35,6 +35,8 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
     name: "", subtitle: "", description: "", price: 0, emoji: "✨",
     shades: [], needsShade: false, active: true,
     ...initial,
+    // When editing: if no oldPrice exists, seed it equal to price so the UI shows a non-discounted product correctly
+    oldPrice: initial?.oldPrice ?? initial?.price ?? 0,
   });
   const [shadeInput, setShadeInput] = useState({ name: "", hex: "#e91e8c" });
 
@@ -51,13 +53,17 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
   function submit() {
     if (!form.name || !form.price) return;
     const hasShades = (form.shades?.length ?? 0) > 0;
+    const salePrice = Number(form.price);
+    const origPrice = form.oldPrice ? Number(form.oldPrice) : undefined;
+    // Only store oldPrice if there's actually a discount
+    const hasDiscount = origPrice && origPrice > salePrice;
     onSave({
       id: form.id,
       name: form.name!,
       subtitle: form.subtitle ?? "",
       description: form.description ?? "",
-      price: Number(form.price),
-      oldPrice: form.oldPrice ? Number(form.oldPrice) : undefined,
+      price: salePrice,
+      oldPrice: hasDiscount ? origPrice : undefined,
       badge: form.badge,
       badgeColor: form.badgeColor,
       emoji: form.emoji ?? "✨",
@@ -94,15 +100,88 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
           <input value={form.badge ?? ""} onChange={e => setForm(f => ({ ...f, badge: e.target.value || undefined }))}
             className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#e91e8c]" placeholder="e.g. Bestseller" />
         </div>
-        <div>
-          <label className="text-xs font-semibold text-gray-500 mb-1 block">Price (Rs.) *</label>
-          <input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#e91e8c]" />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-gray-500 mb-1 block">Old Price (strike-through)</label>
-          <input type="number" value={form.oldPrice ?? ""} onChange={e => setForm(f => ({ ...f, oldPrice: Number(e.target.value) || undefined }))}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#e91e8c]" placeholder="Optional" />
+        {/* ── Price + Discount section ── */}
+        <div className="sm:col-span-2 bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-4 border border-pink-100 space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Percent size={14} className="text-[#e91e8c]" />
+            <span className="text-xs font-black text-[#8b0057] uppercase tracking-wide">Pricing & Discount</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 mb-1 block">Original Price (Rs.) *</label>
+              <input
+                type="number"
+                value={form.oldPrice ?? form.price ?? ""}
+                onChange={e => {
+                  const orig = Number(e.target.value) || 0;
+                  setForm(f => {
+                    // If there&apos;s already a sale price set, keep it; otherwise set both
+                    const hasSale = f.oldPrice && f.price && f.price < f.oldPrice;
+                    return hasSale
+                      ? { ...f, oldPrice: orig }
+                      : { ...f, oldPrice: orig, price: orig };
+                  });
+                }}
+                className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#e91e8c]"
+                placeholder="e.g. 1200"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 mb-1 block">Discount %</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  max="90"
+                  value={
+                    form.oldPrice && form.price && form.oldPrice > form.price
+                      ? Math.round(((form.oldPrice - form.price) / form.oldPrice) * 100)
+                      : ""
+                  }
+                  onChange={e => {
+                    const pct = Math.min(90, Math.max(0, Number(e.target.value) || 0));
+                    const orig = form.oldPrice ?? form.price ?? 0;
+                    if (orig > 0) {
+                      const salePrice = Math.round(orig * (1 - pct / 100));
+                      setForm(f => ({ ...f, price: salePrice }));
+                    }
+                  }}
+                  className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#e91e8c] pr-7"
+                  placeholder="0"
+                />
+                <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-bold">%</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 mb-1 block">Sale Price (Rs.) *</label>
+              <input
+                type="number"
+                value={form.price ?? ""}
+                onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) || 0 }))}
+                className="w-full border border-[#e91e8c] bg-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8b0057] font-bold text-[#e91e8c]"
+                placeholder="e.g. 960"
+              />
+            </div>
+          </div>
+
+          {/* Live discount preview */}
+          {form.oldPrice && form.price && form.oldPrice > form.price && (
+            <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-pink-200">
+              <span className="text-xs text-gray-400 line-through">Rs. {Number(form.oldPrice).toLocaleString()}</span>
+              <span className="text-sm font-black text-[#e91e8c]">Rs. {Number(form.price).toLocaleString()}</span>
+              <span className="text-[10px] font-black bg-amber-400 text-white px-1.5 py-0.5 rounded-full ml-auto">
+                -{Math.round(((Number(form.oldPrice) - Number(form.price ?? 0)) / Number(form.oldPrice)) * 100)}% OFF
+              </span>
+              <span className="text-[10px] text-green-600 font-bold">
+                Save Rs. {(Number(form.oldPrice) - Number(form.price)).toLocaleString()}
+              </span>
+            </div>
+          )}
+          {(!form.oldPrice || (form.price ?? 0) >= form.oldPrice) && (
+            <p className="text-[10px] text-gray-400">
+              💡 Set Original Price first, then enter a Discount % — the Sale Price will auto-calculate.
+            </p>
+          )}
         </div>
         <div>
           <label className="text-xs font-semibold text-gray-500 mb-1 block">Stock (optional)</label>

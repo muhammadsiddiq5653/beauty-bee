@@ -22,6 +22,12 @@ export default function StoreNav() {
 
         {/* Right actions */}
         <div className="flex items-center gap-3">
+          <Link href="/about" className="hidden sm:flex items-center gap-1 text-xs text-white/80 hover:text-white font-semibold">
+            About
+          </Link>
+          <Link href="/faq" className="hidden sm:flex items-center gap-1 text-xs text-white/80 hover:text-white font-semibold">
+            FAQ
+          </Link>
           <Link href="/track" className="flex items-center gap-1 text-xs text-white/80 hover:text-white font-semibold">
             <Package size={15} /> Track
           </Link>
