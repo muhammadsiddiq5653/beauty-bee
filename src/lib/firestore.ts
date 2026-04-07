@@ -127,3 +127,7 @@ export async function saveBundle(bundle: Omit<Bundle, "id"> & { id?: string }): 
     return ref.id;
   }
 }
+
+export async function deleteBundle(id: string): Promise<void> {
+  await updateDoc(doc(db, "bundles", id), { active: false });
+}

@@ -44,6 +44,8 @@ export interface CartItem {
   unitPrice: number;
   shade?: string;
   isBundle?: boolean;
+  emoji?: string;
+  imageUrl?: string;
 }
 
 // ─── Order Types ────────────────────────────────────────────────

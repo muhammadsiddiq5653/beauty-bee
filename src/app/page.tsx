@@ -1,5 +1,5 @@
-// Customer homepage — redirects to the order page
+// Customer homepage — redirects to the shop
 import { redirect } from "next/navigation";
 export default function Home() {
-  redirect("/order");
+  redirect("/shop");
 }

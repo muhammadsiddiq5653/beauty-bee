@@ -16,12 +16,11 @@ const NAV = [
   { href: "/admin/analytics",label: "Analytics",  icon: BarChart3 },
 ];
 
-const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN ?? "1234";
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(false);
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
   const pathname = usePathname();
 
@@ -29,11 +28,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (sessionStorage.getItem("bb_admin") === "1") setAuthed(true);
   }, []);
 
-  function login() {
-    if (pin === ADMIN_PIN || pin === "1234") {
-      sessionStorage.setItem("bb_admin", "1");
-      setAuthed(true); setError(false);
-    } else { setError(true); }
+  async function login() {
+    setChecking(true);
+    setError(false);
+    try {
+      const res = await fetch("/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      if (res.ok) {
+        sessionStorage.setItem("bb_admin", "1");
+        setAuthed(true);
+      } else {
+        setError(true);
+      }
+    } catch {
+      setError(true);
+    } finally {
+      setChecking(false);
+    }
   }
 
   function logout() {
@@ -51,15 +65,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <input
             type="password" placeholder="Admin PIN" value={pin}
             onChange={e => setPin(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && login()}
+            onKeyDown={e => e.key === "Enter" && !checking && login()}
             className="w-full border-2 border-pink-200 rounded-xl px-4 py-3 text-center text-xl font-bold tracking-widest focus:outline-none focus:border-[#e91e8c] mb-3"
           />
           {error && <p className="text-red-500 text-sm mb-3">⚠️ Incorrect PIN</p>}
-          <button onClick={login}
-            className="w-full bg-gradient-to-r from-[#8b0057] to-[#e91e8c] text-white py-3 rounded-full font-black text-base hover:opacity-90">
-            Enter Admin →
+          <button onClick={login} disabled={checking}
+            className="w-full bg-gradient-to-r from-[#8b0057] to-[#e91e8c] text-white py-3 rounded-full font-black text-base hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
+            {checking ? (
+              <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full"></span> Verifying...</>
+            ) : "Enter Admin →"}
           </button>
-          <p className="text-xs text-gray-300 mt-4">Default PIN: 1234 — change in .env.local</p>
         </div>
       </div>
     );
