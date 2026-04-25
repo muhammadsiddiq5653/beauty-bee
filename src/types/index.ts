@@ -75,6 +75,7 @@ export interface Order {
   // Customer
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   deliveryAddress: string;
   cityName: string;
   transactionNotes?: string;
@@ -85,6 +86,8 @@ export interface Order {
   pieceCount: number;
   subtotal: number;
   deliveryCharge: number;
+  discount?: number;
+  promoCode?: string;
   total: number;                // invoicePayment sent to PostEx
 
   // PostEx

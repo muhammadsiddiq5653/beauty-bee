@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Package, Plus, Edit2, Trash2, X, ToggleLeft, ToggleRight,
-  ChevronDown, ChevronUp, Tag, Gift, Save, RefreshCw, AlertCircle, Percent
+  ChevronDown, ChevronUp, Tag, Gift, Save, RefreshCw, AlertCircle, Percent,
+  ImagePlus, Loader2
 } from "lucide-react";
 import {
   getProducts, saveProduct, deleteProduct,
   getBundles, saveBundle, deleteBundle,
 } from "@/lib/firestore";
 import { DEFAULT_PRODUCTS, DEFAULT_BUNDLES } from "@/lib/catalogue";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { Product, Bundle } from "@/types";
 
 const CATEGORIES = ["Colour", "Skincare", "Body", "Hair", "Other"];
@@ -35,10 +38,31 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
     name: "", subtitle: "", description: "", price: 0, emoji: "✨",
     shades: [], needsShade: false, active: true,
     ...initial,
-    // When editing: if no oldPrice exists, seed it equal to price so the UI shows a non-discounted product correctly
     oldPrice: initial?.oldPrice ?? initial?.price ?? 0,
   });
   const [shadeInput, setShadeInput] = useState({ name: "", hex: "#e91e8c" });
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImageUpload(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    setUploading(true);
+    setUploadProgress(0);
+    const path = `products/${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+    const storageRef = ref(storage, path);
+    const task = uploadBytesResumable(storageRef, file);
+    task.on(
+      "state_changed",
+      snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+      () => setUploading(false),
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        setForm(f => ({ ...f, imageUrl: url }));
+        setUploading(false);
+      }
+    );
+  }
 
   function addShade() {
     if (!shadeInput.name) return;
@@ -207,6 +231,59 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
         <label className="text-xs font-semibold text-gray-500 mb-1 block">Description</label>
         <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
           rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#e91e8c] resize-none" placeholder="Short product description..." />
+      </div>
+
+      {/* Image Upload */}
+      <div>
+        <label className="text-xs font-semibold text-gray-500 mb-2 block">Product Image</label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }}
+        />
+        {form.imageUrl ? (
+          <div className="relative w-full h-48 rounded-2xl overflow-hidden border border-gray-200 group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.imageUrl} alt="Product" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition-opacity">
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="bg-white text-gray-800 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-gray-100">
+                Replace
+              </button>
+              <button type="button" onClick={() => setForm(f => ({ ...f, imageUrl: undefined }))}
+                className="bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-red-600">
+                Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full h-32 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-[#e91e8c] hover:text-[#e91e8c] transition-colors disabled:opacity-60"
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={22} className="animate-spin" />
+                <span className="text-xs font-semibold">Uploading... {uploadProgress}%</span>
+              </>
+            ) : (
+              <>
+                <ImagePlus size={22} />
+                <span className="text-xs font-semibold">Click to upload image</span>
+                <span className="text-[10px]">JPG, PNG, WEBP supported</span>
+              </>
+            )}
+          </button>
+        )}
+        {uploading && (
+          <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#e91e8c] transition-all duration-200 rounded-full" style={{ width: `${uploadProgress}%` }} />
+          </div>
+        )}
       </div>
 
       {/* Shades */}
@@ -555,7 +632,12 @@ export default function ProductsPage() {
             return (
               <div key={p.id} className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${!p.active ? "opacity-60" : ""}`}>
                 <div className="flex items-center gap-3 p-4">
-                  <div className="text-3xl">{p.emoji}</div>
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#F2EDE8] flex items-center justify-center flex-shrink-0">
+                    {p.imageUrl
+                      ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                      : <span className="text-2xl">{p.emoji}</span>
+                    }
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-gray-800">{p.name}</span>

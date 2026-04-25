@@ -5,89 +5,143 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ShoppingBag, Package, BarChart3,
-  Truck, LogOut, Menu, X, ChevronRight
+  Truck, LogOut, Menu, X, ChevronRight, Eye, EyeOff
 } from "lucide-react";
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  type User,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const NAV = [
-  { href: "/admin",          label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/admin/orders",   label: "Orders",     icon: ShoppingBag },
-  { href: "/admin/postex",   label: "PostEx",     icon: Truck },
-  { href: "/admin/products", label: "Products",   icon: Package },
-  { href: "/admin/analytics",label: "Analytics",  icon: BarChart3 },
+  { href: "/admin",           label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/admin/orders",    label: "Orders",     icon: ShoppingBag },
+  { href: "/admin/postex",    label: "PostEx",     icon: Truck },
+  { href: "/admin/products",  label: "Products",   icon: Package },
+  { href: "/admin/analytics", label: "Analytics",  icon: BarChart3 },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [authed, setAuthed] = useState(false);
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
-  const [checking, setChecking] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState("");
+  const [signing, setSigning] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
-    if (sessionStorage.getItem("bb_admin") === "1") setAuthed(true);
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return unsub;
   }, []);
 
-  async function login() {
-    setChecking(true);
-    setError(false);
+  async function login(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSigning(true);
     try {
-      const res = await fetch("/api/admin/verify-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-      });
-      if (res.ok) {
-        sessionStorage.setItem("bb_admin", "1");
-        setAuthed(true);
-      } else {
-        setError(true);
-      }
+      await signInWithEmailAndPassword(auth, email, password);
     } catch {
-      setError(true);
+      setError("Incorrect email or password.");
     } finally {
-      setChecking(false);
+      setSigning(false);
     }
   }
 
-  function logout() {
-    sessionStorage.removeItem("bb_admin");
-    setAuthed(false);
+  async function logout() {
+    await signOut(auth);
   }
 
-  if (!authed) {
+  // Still checking auth state
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#8b0057] to-[#e91e8c] flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
-          <div className="text-5xl mb-3">🐝</div>
-          <h1 className="text-2xl font-black text-[#8b0057] mb-1">Beauty Bee Admin</h1>
-          <p className="text-gray-400 text-sm mb-6">Enter your admin PIN to continue</p>
-          <input
-            type="password" placeholder="Admin PIN" value={pin}
-            onChange={e => setPin(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !checking && login()}
-            className="w-full border-2 border-pink-200 rounded-xl px-4 py-3 text-center text-xl font-bold tracking-widest focus:outline-none focus:border-[#e91e8c] mb-3"
-          />
-          {error && <p className="text-red-500 text-sm mb-3">⚠️ Incorrect PIN</p>}
-          <button onClick={login} disabled={checking}
-            className="w-full bg-gradient-to-r from-[#8b0057] to-[#e91e8c] text-white py-3 rounded-full font-black text-base hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
-            {checking ? (
-              <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full"></span> Verifying...</>
-            ) : "Enter Admin →"}
-          </button>
-        </div>
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+        <span className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
   }
 
+  // Not signed in — show login
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
+        <form onSubmit={login} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 bg-[#F9ECF0] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">🐝</span>
+            </div>
+            <h1 className="font-serif font-bold text-xl text-[#1A1A1A]">Beauty Bee Admin</h1>
+            <p className="text-sm text-[#6B6B6B] mt-1">Sign in with your admin account</p>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-[#6B6B6B] block mb-1.5">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="admin@beautybee.pk"
+                required
+                className="w-full border border-[#EDE8E4] rounded-2xl px-4 py-3 text-sm bg-[#FAF7F4] focus:outline-none focus:border-[#9B2B47] transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-[#6B6B6B] block mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  type={showPass ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full border border-[#EDE8E4] rounded-2xl px-4 py-3 pr-11 text-sm bg-[#FAF7F4] focus:outline-none focus:border-[#9B2B47] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#9B2B47]"
+                >
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-red-500 text-xs mt-3">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={signing}
+            className="w-full mt-5 bg-[#9B2B47] hover:bg-[#7D1E35] text-white py-3 rounded-full font-semibold text-sm disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+          >
+            {signing ? (
+              <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" /> Signing in...</>
+            ) : "Sign In →"}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // Signed in — show admin
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar — desktop */}
       <aside className="hidden md:flex flex-col w-60 bg-white border-r border-gray-100 shadow-sm fixed h-full z-30">
-        <div className="p-5 border-b border-pink-100">
+        <div className="p-5 border-b border-gray-100">
           <div className="text-2xl">🐝</div>
-          <div className="font-black text-[#8b0057] text-lg">Beauty Bee</div>
-          <div className="text-xs text-gray-400">Admin Dashboard</div>
+          <div className="font-serif font-bold text-[#9B2B47] text-base">Beauty Bee</div>
+          <div className="text-xs text-[#6B6B6B] mt-0.5 truncate">{user.email}</div>
         </div>
         <nav className="flex-1 py-4 px-3 space-y-1">
           {NAV.map(n => {
@@ -95,22 +149,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             return (
               <Link key={n.href} href={n.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  active ? "bg-gradient-to-r from-[#8b0057] to-[#e91e8c] text-white shadow-md" : "text-gray-600 hover:bg-pink-50 hover:text-[#8b0057]"
+                  active
+                    ? "bg-[#9B2B47] text-white"
+                    : "text-gray-600 hover:bg-[#F9ECF0] hover:text-[#9B2B47]"
                 }`}>
-                <n.icon size={18}/> {n.label}
-                {active && <ChevronRight size={14} className="ml-auto"/>}
+                <n.icon size={17} /> {n.label}
+                {active && <ChevronRight size={13} className="ml-auto" />}
               </Link>
             );
           })}
         </nav>
         <div className="p-3 border-t border-gray-100">
-          <Link href="/order" target="_blank"
-            className="flex items-center gap-2 text-xs text-gray-400 hover:text-[#e91e8c] px-3 py-2 rounded-xl hover:bg-pink-50 mb-1">
-            <ShoppingBag size={14}/> View Customer Store
+          <Link href="/shop" target="_blank"
+            className="flex items-center gap-2 text-xs text-[#6B6B6B] hover:text-[#9B2B47] px-3 py-2 rounded-xl hover:bg-[#F9ECF0] mb-1 transition-colors">
+            <ShoppingBag size={13} /> View Customer Store
           </Link>
           <button onClick={logout}
-            className="flex items-center gap-2 text-xs text-gray-400 hover:text-red-500 px-3 py-2 rounded-xl hover:bg-red-50 w-full">
-            <LogOut size={14}/> Sign Out
+            className="flex items-center gap-2 text-xs text-[#6B6B6B] hover:text-red-500 px-3 py-2 rounded-xl hover:bg-red-50 w-full transition-colors">
+            <LogOut size={13} /> Sign Out
           </button>
         </div>
       </aside>
@@ -119,10 +175,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-sm flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-xl">🐝</span>
-          <span className="font-black text-[#8b0057]">Admin</span>
+          <span className="font-serif font-bold text-[#9B2B47]">Admin</span>
         </div>
         <button onClick={() => setSideOpen(!sideOpen)} className="text-gray-500">
-          {sideOpen ? <X size={22}/> : <Menu size={22}/>}
+          {sideOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
@@ -130,9 +186,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {sideOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/40" onClick={() => setSideOpen(false)}>
           <div className="bg-white w-64 h-full shadow-xl p-4" onClick={e => e.stopPropagation()}>
-            <div className="mb-4 pb-3 border-b border-pink-100">
-              <div className="font-black text-[#8b0057] text-lg">🐝 Beauty Bee</div>
-              <div className="text-xs text-gray-400">Admin Dashboard</div>
+            <div className="mb-4 pb-3 border-b border-gray-100">
+              <div className="font-serif font-bold text-[#9B2B47] text-base">🐝 Beauty Bee</div>
+              <div className="text-xs text-[#6B6B6B] mt-0.5 truncate">{user.email}</div>
             </div>
             <nav className="space-y-1">
               {NAV.map(n => {
@@ -140,21 +196,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 return (
                   <Link key={n.href} href={n.href} onClick={() => setSideOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold ${
-                      active ? "bg-gradient-to-r from-[#8b0057] to-[#e91e8c] text-white" : "text-gray-600 hover:bg-pink-50"
+                      active ? "bg-[#9B2B47] text-white" : "text-gray-600 hover:bg-[#F9ECF0]"
                     }`}>
-                    <n.icon size={18}/> {n.label}
+                    <n.icon size={17} /> {n.label}
                   </Link>
                 );
               })}
             </nav>
-            <button onClick={logout} className="mt-4 flex items-center gap-2 text-sm text-gray-400 px-3 py-2">
-              <LogOut size={14}/> Sign Out
+            <button onClick={logout} className="mt-4 flex items-center gap-2 text-sm text-[#6B6B6B] px-3 py-2 hover:text-red-500">
+              <LogOut size={13} /> Sign Out
             </button>
           </div>
         </div>
       )}
 
-      {/* Main Content */}
+      {/* Main content */}
       <div className="flex-1 md:ml-60 pt-14 md:pt-0">
         {children}
       </div>

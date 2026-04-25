@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Search, Package, CheckCircle, Truck, RotateCcw, Clock, AlertCircle } from "lucide-react";
+import StoreNav from "@/components/StoreNav";
+import CartDrawer from "@/components/CartDrawer";
 
 interface TrackResult {
   tracking: string;
@@ -16,14 +18,14 @@ interface TrackResult {
 }
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
-  "0001": <Package className="text-blue-500" size={20}/>,
-  "0003": <Truck className="text-purple-500" size={20}/>,
-  "0004": <Truck className="text-orange-500" size={20}/>,
-  "0005": <CheckCircle className="text-green-500" size={20}/>,
-  "0006": <RotateCcw className="text-red-400" size={20}/>,
-  "0007": <RotateCcw className="text-red-400" size={20}/>,
-  "0008": <AlertCircle className="text-yellow-500" size={20}/>,
-  "0013": <Clock className="text-orange-400" size={20}/>,
+  "0001": <Package className="text-blue-500" size={18} />,
+  "0003": <Truck className="text-purple-500" size={18} />,
+  "0004": <Truck className="text-orange-500" size={18} />,
+  "0005": <CheckCircle className="text-green-500" size={18} />,
+  "0006": <RotateCcw className="text-red-400" size={18} />,
+  "0007": <RotateCcw className="text-red-400" size={18} />,
+  "0008": <AlertCircle className="text-yellow-500" size={18} />,
+  "0013": <Clock className="text-orange-400" size={18} />,
 };
 
 export default function TrackPage() {
@@ -46,24 +48,31 @@ export default function TrackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fdf3f9]">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-[#8b0057] to-[#e91e8c] text-white sticky top-0 z-40 shadow-lg">
-        <div className="max-w-lg mx-auto px-3 py-4 flex items-center gap-3">
-          <Link href="/order" className="text-white/80 hover:text-white"><ChevronLeft size={22}/></Link>
+    <div className="min-h-screen bg-[#FAF7F4]">
+      <StoreNav />
+      <CartDrawer />
+
+      {/* Page header */}
+      <div className="border-b border-[#EDE8E4] bg-white">
+        <div className="max-w-lg mx-auto px-5 py-5 flex items-center gap-3">
+          <Link href="/shop" className="text-[#6B6B6B] hover:text-[#9B2B47] transition-colors">
+            <ChevronLeft size={20} />
+          </Link>
           <div>
-            <div className="font-black">Track Your Order</div>
-            <div className="text-xs opacity-80">🐝 Beauty Bee · PostEx Tracking</div>
+            <h1 className="font-serif font-bold text-xl text-[#1A1A1A] leading-none">Track Your Order</h1>
+            <p className="text-xs text-[#6B6B6B] mt-0.5">Beauty Bee · PostEx Tracking</p>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="max-w-lg mx-auto px-3 pt-6 pb-16">
+      <div className="max-w-lg mx-auto px-5 pt-8 pb-16 space-y-4">
 
-        {/* Search Box */}
-        <div className="bg-white rounded-2xl shadow-md p-5 mb-4">
-          <h2 className="font-bold text-[#8b0057] mb-1">Enter your tracking number</h2>
-          <p className="text-xs text-gray-400 mb-4">Your PostEx tracking number (starts with CX) or Beauty Bee order ref (starts with BB-)</p>
+        {/* Search box */}
+        <div className="bg-white rounded-3xl border border-[#EDE8E4] p-6">
+          <h2 className="font-serif font-bold text-lg text-[#1A1A1A] mb-1">Enter your tracking number</h2>
+          <p className="text-xs text-[#6B6B6B] mb-5 leading-relaxed">
+            Your PostEx tracking number (starts with CX) or Beauty Bee order ref (starts with BB-)
+          </p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -71,69 +80,77 @@ export default function TrackPage() {
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleTrack()}
               placeholder="e.g. CX-XXXXXXXXXXXX or BB-12345678"
-              className="flex-1 border-2 border-pink-100 rounded-xl px-3 py-2.5 text-sm bg-pink-50 focus:outline-none focus:border-[#e91e8c]"
+              className="flex-1 border border-[#EDE8E4] rounded-2xl px-4 py-3 text-sm bg-[#FAF7F4] focus:outline-none focus:border-[#9B2B47] transition-colors placeholder:text-[#6B6B6B]/50"
             />
-            <button onClick={handleTrack} disabled={loading}
-              className="bg-[#e91e8c] text-white rounded-xl px-4 py-2.5 font-bold text-sm flex items-center gap-1.5 hover:bg-[#8b0057] transition-colors disabled:opacity-60">
-              {loading ? <span className="animate-spin w-4 h-4 border-2 border-white/40 border-t-white rounded-full"></span> : <Search size={16}/>}
+            <button
+              onClick={handleTrack}
+              disabled={loading}
+              className="btn-ripple bg-[#9B2B47] hover:bg-[#7D1E35] text-white rounded-2xl px-5 py-3 font-semibold text-sm flex items-center gap-2 transition-colors disabled:opacity-60"
+            >
+              {loading
+                ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                : <Search size={15} />
+              }
               Track
             </button>
           </div>
-          {error && <p className="text-red-500 text-xs mt-2">⚠️ {error}</p>}
+          {error && (
+            <p className="text-red-500 text-xs mt-3 flex items-center gap-1.5">
+              <AlertCircle size={12} /> {error}
+            </p>
+          )}
         </div>
 
         {/* Result */}
         {result && (
-          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-            {/* Status Header */}
-            <div className="bg-gradient-to-r from-[#8b0057] to-[#e91e8c] p-4 text-white">
-              <div className="text-xs opacity-80 mb-0.5">Tracking Number</div>
-              <div className="font-mono font-bold text-lg">{result.tracking}</div>
-              <div className="text-xs opacity-80 mt-1">Ref: {result.orderRefNumber}</div>
+          <div className="bg-white rounded-3xl border border-[#EDE8E4] overflow-hidden">
+            {/* Result header */}
+            <div className="bg-[#9B2B47] p-5 text-white">
+              <p className="text-xs text-white/60 mb-1 tracking-wide uppercase">Tracking Number</p>
+              <p className="font-mono font-bold text-lg">{result.tracking}</p>
+              <p className="text-xs text-white/60 mt-1">Ref: {result.orderRefNumber}</p>
             </div>
 
-            <div className="p-4 space-y-4">
-              {/* Customer & Status */}
+            <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-pink-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Customer</p>
-                  <p className="font-semibold text-[#8b0057] text-sm">{result.customerName}</p>
+                <div className="bg-[#FAF7F4] rounded-2xl p-3 border border-[#EDE8E4]">
+                  <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">Customer</p>
+                  <p className="font-semibold text-[#1A1A1A] text-sm">{result.customerName}</p>
                 </div>
-                <div className="bg-pink-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">City</p>
-                  <p className="font-semibold text-[#8b0057] text-sm">{result.cityName}</p>
+                <div className="bg-[#FAF7F4] rounded-2xl p-3 border border-[#EDE8E4]">
+                  <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">City</p>
+                  <p className="font-semibold text-[#1A1A1A] text-sm">{result.cityName}</p>
                 </div>
               </div>
 
-              {/* Latest Status */}
-              <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
-                <div>{STATUS_ICONS[result.history?.[result.history.length-1]?.code] ?? <Package size={20} className="text-gray-400"/>}</div>
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
+                {STATUS_ICONS[result.history?.[result.history.length - 1]?.code] ?? <Package size={18} className="text-[#6B6B6B]" />}
                 <div>
-                  <p className="text-xs text-gray-500">Current Status</p>
-                  <p className="font-bold text-green-700">{result.latestStatus}</p>
+                  <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">Current Status</p>
+                  <p className="font-semibold text-green-700 text-sm">{result.latestStatus}</p>
                 </div>
               </div>
 
-              {/* COD Amount */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs text-gray-500">Amount (Cash on Delivery)</p>
-                <p className="font-black text-amber-700 text-lg">Rs. {result.invoicePayment.toLocaleString()}</p>
+              <div className="bg-[#FAF7F4] border border-[#EDE8E4] rounded-2xl p-4">
+                <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">Amount (Cash on Delivery)</p>
+                <p className="font-serif font-bold text-[#9B2B47] text-2xl">Rs. {result.invoicePayment.toLocaleString()}</p>
               </div>
 
-              {/* History Timeline */}
               {result.history?.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-[#8b0057] text-sm mb-3">Order Journey</h3>
-                  <div className="space-y-2">
+                  <h3 className="font-serif font-bold text-[#1A1A1A] mb-4">Order Journey</h3>
+                  <div className="space-y-3">
                     {[...result.history].reverse().map((h, i) => (
                       <div key={i} className="flex items-start gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-3 h-3 rounded-full mt-0.5 ${i === 0 ? "bg-[#e91e8c]" : "bg-gray-300"}`}></div>
-                          {i < result.history.length - 1 && <div className="w-0.5 h-6 bg-gray-200 mt-1"></div>}
+                        <div className="flex flex-col items-center pt-0.5">
+                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${i === 0 ? "bg-[#9B2B47]" : "bg-[#EDE8E4]"}`} />
+                          {i < result.history.length - 1 && (
+                            <div className="w-px h-6 bg-[#EDE8E4] mt-1" />
+                          )}
                         </div>
-                        <div className={`text-sm pb-1 ${i === 0 ? "font-semibold text-[#8b0057]" : "text-gray-500"}`}>
+                        <p className={`text-sm pb-1 ${i === 0 ? "font-semibold text-[#1A1A1A]" : "text-[#6B6B6B]"}`}>
                           {h.message}
-                        </div>
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -143,16 +160,22 @@ export default function TrackPage() {
           </div>
         )}
 
-        {/* Info Box */}
+        {/* Empty state */}
         {!result && !loading && (
-          <div className="bg-white rounded-2xl shadow-sm p-5 text-center">
-            <div className="text-4xl mb-3">📦</div>
-            <p className="font-bold text-[#8b0057] mb-1">Need help with your order?</p>
-            <p className="text-sm text-gray-500 mb-4">
+          <div className="bg-white rounded-3xl border border-[#EDE8E4] p-8 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-[#F9ECF0] rounded-2xl mb-4">
+              <Package size={24} className="text-[#9B2B47]" />
+            </div>
+            <h3 className="font-serif font-bold text-lg text-[#1A1A1A] mb-2">Need help with your order?</h3>
+            <p className="text-sm text-[#6B6B6B] mb-6 leading-relaxed max-w-xs mx-auto">
               Enter your PostEx tracking number above. You can find it in your WhatsApp order confirmation.
             </p>
-            <a href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer"
-              className="inline-flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-green-600">
+            <a
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full font-semibold text-sm transition-colors"
+            >
               💬 Contact Beauty Bee
             </a>
           </div>

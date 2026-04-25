@@ -9,38 +9,42 @@ export default function StoreNav() {
   const count = itemCount();
 
   return (
-    <header className="bg-gradient-to-r from-[#8b0057] to-[#e91e8c] text-white sticky top-0 z-40 shadow-lg">
-      <div className="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
+    <header className="bg-white border-b border-[#EDE8E4] sticky top-0 z-40">
+      <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl">🐝</span>
+        <Link href="/" className="flex items-center gap-2.5">
+          <span className="text-xl">🐝</span>
           <div>
-            <div className="font-black text-lg leading-none">BEAUTY BEE</div>
-            <div className="text-[10px] opacity-70 leading-none">100% Organic Beauty</div>
+            <div className="font-serif font-bold text-[#9B2B47] text-base leading-none tracking-wide">BEAUTY BEE</div>
+            <div className="text-[9px] text-[#6B6B6B] leading-none tracking-widest uppercase mt-0.5">Organic Beauty</div>
           </div>
         </Link>
 
         {/* Right actions */}
-        <div className="flex items-center gap-3">
-          <Link href="/about" className="hidden sm:flex items-center gap-1 text-xs text-white/80 hover:text-white font-semibold">
+        <nav className="flex items-center gap-5">
+          <Link href="/about" className="hidden sm:block text-xs text-[#6B6B6B] hover:text-[#9B2B47] transition-colors font-medium tracking-wide">
             About
           </Link>
-          <Link href="/faq" className="hidden sm:flex items-center gap-1 text-xs text-white/80 hover:text-white font-semibold">
+          <Link href="/faq" className="hidden sm:block text-xs text-[#6B6B6B] hover:text-[#9B2B47] transition-colors font-medium tracking-wide">
             FAQ
           </Link>
-          <Link href="/track" className="flex items-center gap-1 text-xs text-white/80 hover:text-white font-semibold">
-            <Package size={15} /> Track
+          <Link href="/track" className="flex items-center gap-1.5 text-xs text-[#6B6B6B] hover:text-[#9B2B47] transition-colors font-medium tracking-wide">
+            <Package size={14} />
+            Track
           </Link>
-          <button onClick={openDrawer} className="relative flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-2 rounded-full font-bold text-sm">
-            <ShoppingBag size={16} />
+          <button
+            onClick={openDrawer}
+            className="btn-ripple relative flex items-center gap-2 bg-[#9B2B47] hover:bg-[#7D1E35] transition-colors text-white px-4 py-2 rounded-full text-xs font-semibold"
+          >
+            <ShoppingBag size={14} />
             Cart
             {count > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-white text-[#e91e8c] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow">
+              <span className="absolute -top-1.5 -right-1.5 bg-[#C9A84C] text-white text-[9px] font-bold w-4.5 h-4.5 min-w-[18px] min-h-[18px] rounded-full flex items-center justify-center shadow-sm">
                 {count > 9 ? "9+" : count}
               </span>
             )}
           </button>
-        </div>
+        </nav>
       </div>
     </header>
   );
