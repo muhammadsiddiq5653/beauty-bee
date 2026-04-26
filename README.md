@@ -1,5 +1,6 @@
 # 🐝 Beauty Bee — Order Management App
 
+
 A full-stack Next.js ordering and admin app for Beauty Bee, integrated with PostEx courier and Firebase.
 
 ---
