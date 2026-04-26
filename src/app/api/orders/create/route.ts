@@ -3,14 +3,12 @@
  * Creates order in Firestore, books on PostEx, sends email notifications.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { createOrder } from "@/lib/firestore";
 import { createPostexOrder } from "@/lib/postex";
 import type { Order } from "@/types";
 
 const DELIVERY_CHARGE = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.RESEND_FROM ?? "orders@beautybee.pk";
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL ?? "";
 
 // ── Email templates ──────────────────────────────────────────────
@@ -227,46 +225,44 @@ export async function POST(req: NextRequest) {
     const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
     const emailPromises: Promise<unknown>[] = [];
 
-    // Email to business owner
-    if (NOTIFY_EMAIL) {
-      emailPromises.push(
-        resend.emails.send({
-          from: FROM,
-          to: NOTIFY_EMAIL,
-          subject: `🐝 New Order ${refNumber} — Rs. ${total.toLocaleString()} — ${customerName}`,
-          html: businessEmailHtml({
-            refNumber,
-            trackingNumber,
-            customerName,
-            customerPhone,
-            cityName,
-            deliveryAddress,
-            transactionNotes: transactionNotes ?? "",
-            itemSummary,
-            subtotal,
-            total,
-          }),
-        })
-      );
-    }
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD;
 
-    // Email to customer (if they provided one)
-    if (customerEmail) {
-      emailPromises.push(
-        resend.emails.send({
-          from: FROM,
-          to: customerEmail,
-          subject: `Your Beauty Bee order is confirmed — ${refNumber}`,
-          html: customerEmailHtml({
-            refNumber,
-            trackingNumber,
-            customerName,
-            itemSummary,
-            total,
-            whatsappNumber,
-          }),
-        })
-      );
+    if (gmailUser && gmailPass) {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: { user: gmailUser, pass: gmailPass },
+      });
+
+      if (NOTIFY_EMAIL) {
+        emailPromises.push(
+          transporter.sendMail({
+            from: `"Beauty Bee Orders" <${gmailUser}>`,
+            to: NOTIFY_EMAIL,
+            subject: `🐝 New Order ${refNumber} — Rs. ${total.toLocaleString()} — ${customerName}`,
+            html: businessEmailHtml({
+              refNumber, trackingNumber, customerName, customerPhone,
+              cityName, deliveryAddress,
+              transactionNotes: transactionNotes ?? "",
+              itemSummary, subtotal, total,
+            }),
+          })
+        );
+      }
+
+      if (customerEmail) {
+        emailPromises.push(
+          transporter.sendMail({
+            from: `"Beauty Bee" <${gmailUser}>`,
+            to: customerEmail,
+            subject: `Your Beauty Bee order is confirmed — ${refNumber}`,
+            html: customerEmailHtml({
+              refNumber, trackingNumber, customerName,
+              itemSummary, total, whatsappNumber,
+            }),
+          })
+        );
+      }
     }
 
     await Promise.allSettled(emailPromises);
