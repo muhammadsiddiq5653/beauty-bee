@@ -4,20 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, ShoppingBag, CheckCircle, Zap } from "lucide-react";
 import { getProducts } from "@/lib/firestore";
-import { DEFAULT_PRODUCTS } from "@/lib/catalogue";
 import { useCartStore } from "@/store/cart";
 import type { Product } from "@/types";
 
-// Suggest companion products based on current product
 function getSuggestions(currentId: string, allProducts: Product[]): Product[] {
-  const pairings: Record<string, string[]> = {
-    tint:  ["serum", "soap"],
-    serum: ["mask", "soap"],
-    mask:  ["serum", "tint"],
-    soap:  ["tint", "serum"],
-  };
-  const ids = pairings[currentId] ?? allProducts.filter(p => p.id !== currentId).map(p => p.id).slice(0, 2);
-  return ids.map(id => allProducts.find(p => p.id === id)).filter(Boolean) as Product[];
+  return allProducts.filter(p => p.id !== currentId).slice(0, 2);
 }
 
 interface Props {
@@ -36,10 +27,9 @@ export default function FrequentlyBoughtTogether({ currentProductId, currentProd
       try {
         const all = await getProducts();
         const active = all.filter(p => p.active !== false && p.id !== currentProductId);
-        setProducts(getSuggestions(currentProductId, active.length > 0 ? active : (DEFAULT_PRODUCTS.map((p, idx) => ({ ...p, id: ["tint", "mask", "serum", "soap"][idx] })) as Product[])));
+        setProducts(getSuggestions(currentProductId, active));
       } catch {
-        const fallback = DEFAULT_PRODUCTS.map((p, idx) => ({ ...p, id: ["tint", "mask", "serum", "soap"][idx] })) as Product[];
-        setProducts(getSuggestions(currentProductId, fallback.filter(p => p.id !== currentProductId)));
+        // leave empty — component returns null if no products
       }
     }
     load();

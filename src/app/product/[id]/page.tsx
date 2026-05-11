@@ -9,7 +9,6 @@ import {
   Shield, Truck, Package, CheckCircle, RefreshCw, Leaf
 } from "lucide-react";
 import { getProducts } from "@/lib/firestore";
-import { DEFAULT_PRODUCTS } from "@/lib/catalogue";
 import { useCartStore } from "@/store/cart";
 import StoreNav from "@/components/StoreNav";
 import CartDrawer from "@/components/CartDrawer";
@@ -34,11 +33,7 @@ export default function ProductDetailPage() {
         const prods = await getProducts();
         const found = prods.find(p => p.id === id && p.active !== false);
         if (found) { setProduct(found); return; }
-      } catch { /* fall through */ }
-      const fallback = DEFAULT_PRODUCTS.map((p, i) => ({
-        ...p, id: ["tint", "mask", "serum", "soap"][i]
-      })) as Product[];
-      setProduct(fallback.find(p => p.id === id) ?? null);
+      } catch { /* leave null */ }
     }
     load().finally(() => setLoading(false));
   }, [id]);
