@@ -15,6 +15,7 @@ import CartDrawer from "@/components/CartDrawer";
 import ReviewsSection from "@/components/ReviewsSection";
 import UrgencyBadge from "@/components/UrgencyBadge";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import EmailCapture from "@/components/EmailCapture";
 import type { Product, Bundle } from "@/types";
 
 const DELIVERY_DEFAULT = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
@@ -212,8 +213,11 @@ function BundleCard({ bundle, index }: { bundle: Bundle; index: number }) {
       style={{ animationDelay: `${index * 100}ms`, opacity: visible ? undefined : 0 }}
       className={`product-card bg-white rounded-3xl border border-[#EDE8E4] p-5 flex gap-4 ${visible ? "animate-slide-up" : ""}`}
     >
-      <div className="w-16 h-16 rounded-2xl bg-[#F9ECF0] flex items-center justify-center text-3xl flex-shrink-0">
-        <span className="animate-float">{bundle.emoji}</span>
+      <div className="w-16 h-16 rounded-2xl bg-[#F9ECF0] flex items-center justify-center text-3xl flex-shrink-0 overflow-hidden">
+        {bundle.imageUrl
+          ? <img src={bundle.imageUrl} alt={bundle.name} className="w-full h-full object-cover" />
+          : <span className="animate-float">{bundle.emoji}</span>
+        }
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
@@ -353,6 +357,7 @@ export default function ShopPage() {
       <StoreNav />
       <CartDrawer />
       <WhatsAppButton />
+      <EmailCapture />
       <AnnouncementTicker />
 
       {/* ── Hero ── */}

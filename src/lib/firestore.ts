@@ -128,7 +128,8 @@ export async function saveBundle(bundle: Omit<Bundle, "id"> & { id?: string }): 
     await updateDoc(doc(db, "bundles", id), { ...data });
     return id;
   } else {
-    const ref = await addDoc(collection(db, "bundles"), { ...bundle, createdAt: now });
+    const { id: _id, ...data } = bundle;
+    const ref = await addDoc(collection(db, "bundles"), { ...data, createdAt: now });
     return ref.id;
   }
 }

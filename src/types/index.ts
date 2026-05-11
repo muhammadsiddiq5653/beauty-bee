@@ -32,6 +32,7 @@ export interface Bundle {
   oldPrice: number;
   productIds: string[];
   active: boolean;
+  imageUrl?: string;
   createdAt?: string;
 }
 

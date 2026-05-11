@@ -1,0 +1,20 @@
+[debug] [2026-05-11T09:50:23.494Z] ----------------------------------------------------------------------
+[debug] [2026-05-11T09:50:23.502Z] Command:       /opt/homebrew/Cellar/node/25.8.0/bin/node /opt/homebrew/bin/firebase use --add
+[debug] [2026-05-11T09:50:23.502Z] CLI Version:   15.5.1
+[debug] [2026-05-11T09:50:23.502Z] Platform:      darwin
+[debug] [2026-05-11T09:50:23.502Z] Node Version:  v25.8.0
+[debug] [2026-05-11T09:50:23.502Z] Time:          Mon May 11 2026 14:50:23 GMT+0500 (Pakistan Standard Time)
+[debug] [2026-05-11T09:50:23.502Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-11T09:50:23.568Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-11T09:50:23.568Z] > authorizing via signed-in user (siddiqmunir786@gmail.com)
+[debug] [2026-05-11T09:50:23.569Z] Checked if tokens are valid: false, expires at: 1776249827071
+[debug] [2026-05-11T09:50:23.569Z] Checked if tokens are valid: false, expires at: 1776249827071
+[debug] [2026-05-11T09:50:23.569Z] > refreshing access token with scopes: []
+[debug] [2026-05-11T09:50:23.571Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-05-11T09:50:23.571Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-11T09:50:23.974Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-05-11T09:50:23.974Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-11T09:50:23.983Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-11T09:50:24.764Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-11T09:50:24.765Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
