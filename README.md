@@ -2,7 +2,6 @@
 
 A full-stack Next.js ordering and admin app for Beauty Bee, integrated with PostEx courier and Firebase.
 ---
-
 ## Quick Start
 
 ### 1. Install dependencies
