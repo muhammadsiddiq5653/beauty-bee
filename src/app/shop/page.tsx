@@ -213,15 +213,17 @@ function BundleCard({ bundle, index }: { bundle: Bundle; index: number }) {
       style={{ animationDelay: `${index * 100}ms`, opacity: visible ? undefined : 0 }}
       className={`product-card bg-white rounded-3xl border border-[#EDE8E4] p-5 flex gap-4 ${visible ? "animate-slide-up" : ""}`}
     >
-      <div className="w-16 h-16 rounded-2xl bg-[#F9ECF0] flex items-center justify-center text-3xl flex-shrink-0 overflow-hidden">
+      <Link href={`/bundle/${bundle.id}`} className="w-16 h-16 rounded-2xl bg-[#F9ECF0] flex items-center justify-center text-3xl flex-shrink-0 overflow-hidden">
         {bundle.imageUrl
           ? <img src={bundle.imageUrl} alt={bundle.name} className="w-full h-full object-cover" />
           : <span className="animate-float">{bundle.emoji}</span>
         }
-      </div>
+      </Link>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-serif font-bold text-[#1A1A1A] text-sm leading-tight">{bundle.name}</h3>
+          <Link href={`/bundle/${bundle.id}`}>
+            <h3 className="font-serif font-bold text-[#1A1A1A] text-sm leading-tight hover:text-[#9B2B47]">{bundle.name}</h3>
+          </Link>
           {inCart && (
             <span className="text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-semibold flex-shrink-0 animate-bounce-in">
               ✓ Added
@@ -422,7 +424,7 @@ export default function ShopPage() {
             Lip & Cheek Tint
           </h2>
           <p className="text-sm text-[#6B6B6B] mt-2 max-w-xs mx-auto">
-            One product. Six shades. Endless looks.
+            One product. Multiple shades. Endless looks.
           </p>
         </div>
 
