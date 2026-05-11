@@ -267,17 +267,19 @@ export async function POST(req: NextRequest) {
       postexError = pErr instanceof Error ? pErr.message : "PostEx booking failed";
     }
 
-    // 3. Send emails (fire-and-forget — don't block the response)
-    const emailPromises: Promise<unknown>[] = [];
-
+    // 3. Send emails
     const gmailUser = process.env.GMAIL_USER;
     const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+    console.log(`[orders/create] ${refNumber} — email config: gmailUser=${gmailUser ? "set" : "MISSING"} gmailPass=${gmailPass ? "set" : "MISSING"} customerEmail=${customerEmail || "not provided"} NOTIFY_EMAIL=${NOTIFY_EMAIL || "MISSING"}`);
 
     if (gmailUser && gmailPass) {
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: { user: gmailUser, pass: gmailPass },
       });
+
+      const emailPromises: Promise<unknown>[] = [];
 
       if (NOTIFY_EMAIL) {
         emailPromises.push(
@@ -291,7 +293,8 @@ export async function POST(req: NextRequest) {
               transactionNotes: transactionNotes ?? "",
               itemSummary, subtotal, deliveryCharge: DELIVERY_CHARGE, total,
             }),
-          })
+          }).then(() => console.log(`[orders/create] business email sent to ${NOTIFY_EMAIL}`))
+            .catch(e => console.error(`[orders/create] business email FAILED:`, e))
         );
       }
 
@@ -305,12 +308,15 @@ export async function POST(req: NextRequest) {
               refNumber, trackingNumber, customerName,
               itemSummary, total,
             }),
-          })
+          }).then(() => console.log(`[orders/create] customer email sent to ${customerEmail}`))
+            .catch(e => console.error(`[orders/create] customer email FAILED:`, e))
         );
       }
-    }
 
-    await Promise.allSettled(emailPromises);
+      await Promise.allSettled(emailPromises);
+    } else {
+      console.warn("[orders/create] email skipped — GMAIL_USER or GMAIL_APP_PASSWORD not set");
+    }
 
     return NextResponse.json({
       ok: true,
