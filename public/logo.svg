@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 90" fill="none">
+  <!-- Lantern/beehive icon -->
+  <g transform="translate(18, 4)">
+    <!-- 3 leaf petals at top -->
+    <path d="M28 18 C28 18 22 10 24 4 C26 10 28 18 28 18Z" stroke="#2a2a3a" stroke-width="1.2" fill="none" stroke-linejoin="round"/>
+    <path d="M28 18 C28 18 20 14 18 8 C24 10 28 18 28 18Z" stroke="#2a2a3a" stroke-width="1.2" fill="none" stroke-linejoin="round"/>
+    <path d="M28 18 C28 18 34 10 32 4 C30 10 28 18 28 18Z" stroke="#2a2a3a" stroke-width="1.2" fill="none" stroke-linejoin="round"/>
+    <path d="M28 18 C28 18 36 14 38 8 C32 10 28 18 28 18Z" stroke="#2a2a3a" stroke-width="1.2" fill="none" stroke-linejoin="round"/>
+    <!-- Center petal top -->
+    <path d="M28 18 C28 18 28 8 28 4 C28 8 28 18 28 18Z" stroke="#2a2a3a" stroke-width="1" fill="none"/>
+
+    <!-- Lantern body outer shape - rounded trapezoid -->
+    <path d="M16 20 Q14 22 14 25 L15 48 Q15 52 28 52 Q41 52 41 48 L42 25 Q42 22 40 20 Z" stroke="#2a2a3a" stroke-width="1.4" fill="none"/>
+
+    <!-- Vertical lines inside lantern -->
+    <line x1="21" y1="20" x2="20" y2="51" stroke="#2a2a3a" stroke-width="1" opacity="0.7"/>
+    <line x1="25" y1="19" x2="25" y2="52" stroke="#2a2a3a" stroke-width="1" opacity="0.7"/>
+    <line x1="28" y1="19" x2="28" y2="52" stroke="#2a2a3a" stroke-width="1" opacity="0.7"/>
+    <line x1="31" y1="19" x2="31" y2="52" stroke="#2a2a3a" stroke-width="1" opacity="0.7"/>
+    <line x1="35" y1="20" x2="36" y2="51" stroke="#2a2a3a" stroke-width="1" opacity="0.7"/>
+
+    <!-- Inner oval/shield shape in center of lantern -->
+    <path d="M22 28 Q22 24 28 24 Q34 24 34 28 L34 40 Q34 46 28 47 Q22 46 22 40 Z" stroke="#2a2a3a" stroke-width="1.2" fill="none"/>
+
+    <!-- Small teardrop inside oval -->
+    <path d="M28 30 C26 33 26 37 28 39 C30 37 30 33 28 30Z" stroke="#2a2a3a" stroke-width="1" fill="none"/>
+
+    <!-- Bottom cap of lantern -->
+    <path d="M17 50 Q17 54 28 54 Q39 54 39 50" stroke="#2a2a3a" stroke-width="1.2" fill="none"/>
+  </g>
+
+  <!-- Wordmark: "Beauty" plain + "Bee" script -->
+  <text x="8" y="76" font-family="'Gill Sans', 'Trebuchet MS', Arial, sans-serif" font-size="15" font-weight="400" fill="#2a2a3a" letter-spacing="1">Beauty</text>
+  <text x="62" y="76" font-family="'Brush Script MT', 'Segoe Script', cursive" font-size="20" font-weight="400" fill="#2a2a3a">Bee</text>
+</svg>

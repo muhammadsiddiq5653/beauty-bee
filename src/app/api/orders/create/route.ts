@@ -1,14 +1,17 @@
 /**
  * POST /api/orders/create
  * Creates order in Firestore, books on PostEx, sends email notifications.
+ * Prices and promo discounts are validated server-side — client values are ignored.
  */
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { createOrder } from "@/lib/firestore";
+import { createOrder, getProducts, getBundles, getStoreSettings } from "@/lib/firestore";
 import { createPostexOrder } from "@/lib/postex";
-import type { Order } from "@/types";
+import { db } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
+import type { Order, OrderItem } from "@/types";
 
-const DELIVERY_CHARGE = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
+const DELIVERY_CHARGE_FALLBACK = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL ?? "";
 
 // ── Email templates ──────────────────────────────────────────────
@@ -23,6 +26,7 @@ function businessEmailHtml(order: {
   transactionNotes: string;
   itemSummary: string;
   subtotal: number;
+  deliveryCharge: number;
   total: number;
 }) {
   return `
@@ -69,7 +73,7 @@ function businessEmailHtml(order: {
         </tr>
         <tr>
           <td style="padding:4px 0;color:#6B6B6B;font-size:13px">Delivery</td>
-          <td style="padding:4px 0;font-size:13px;color:#1A1A1A">Rs. ${DELIVERY_CHARGE}</td>
+          <td style="padding:4px 0;font-size:13px;color:#1A1A1A">Rs. ${order.deliveryCharge.toLocaleString()}</td>
         </tr>
         <tr>
           <td style="padding:8px 0 0;font-size:15px;font-weight:700;color:#9B2B47">Total (COD)</td>
@@ -91,13 +95,7 @@ function customerEmailHtml(order: {
   customerName: string;
   itemSummary: string;
   total: number;
-  whatsappNumber: string;
 }) {
-  const waMessage = encodeURIComponent(
-    `Hi Beauty Bee! I'd like to confirm my order:\n\nRef: ${order.refNumber}\nName: ${order.customerName}\nItems: ${order.itemSummary}\nTotal (COD): Rs. ${order.total.toLocaleString()}\n\nPlease confirm. Thank you!`
-  );
-  const waLink = `https://wa.me/${order.whatsappNumber}?text=${waMessage}`;
-
   return `
 <!DOCTYPE html>
 <html>
@@ -124,15 +122,9 @@ function customerEmailHtml(order: {
         <p style="margin:0;font-size:11px;color:#6B6B6B;letter-spacing:0.1em;text-transform:uppercase">Amount to Pay on Delivery</p>
         <p style="margin:6px 0 0;font-size:24px;font-weight:700;color:#9B2B47">Rs. ${order.total.toLocaleString()}</p>
       </div>
-      <p style="margin:0 0 16px;font-size:13px;color:#6B6B6B;text-align:center;line-height:1.6">
-        Your order has been booked with PostEx and will be delivered in <strong>2–5 working days</strong>.<br>
-        Please confirm your order by tapping the button below.
+      <p style="margin:0;font-size:13px;color:#6B6B6B;text-align:center;line-height:1.6">
+        Your order has been booked with PostEx and will be delivered in <strong>2–5 working days</strong>.
       </p>
-      <div style="text-align:center">
-        <a href="${waLink}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:14px 32px;border-radius:100px;font-size:14px;font-weight:600">
-          ✓ Confirm Order on WhatsApp
-        </a>
-      </div>
     </div>
     <div style="padding:16px 28px;background:#FAF7F4;border-top:1px solid #EDE8E4;text-align:center">
       <p style="margin:0;font-size:11px;color:#6B6B6B">Beauty Bee · Pakistan's Favourite Organic Tint · 🐝</p>
@@ -150,21 +142,74 @@ export async function POST(req: NextRequest) {
     const {
       customerName, customerPhone, customerEmail,
       deliveryAddress, cityName, transactionNotes, items,
-      promoCode, discount,
+      promoCode,
     } = body;
 
     if (!customerName || !customerPhone || !deliveryAddress || !cityName || !items?.length) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const refNumber = "BB-" + Date.now().toString().slice(-8);
-    const subtotal: number = items.reduce((s: number, i: { qty: number; unitPrice: number }) => s + i.qty * i.unitPrice, 0);
-    const discountAmount = Number(discount ?? 0);
+    // ── 1. Validate prices server-side ──────────────────────────────
+    const [products, bundles, storeSettings] = await Promise.all([getProducts(), getBundles(), getStoreSettings()]);
+    const DELIVERY_CHARGE = storeSettings.deliveryCharge ?? DELIVERY_CHARGE_FALLBACK;
+    const priceMap = new Map<string, number>();
+    for (const p of products) priceMap.set(p.id, p.price);
+    for (const b of bundles) priceMap.set(b.id, b.price);
+
+    const validatedItems: OrderItem[] = [];
+    for (const item of items as Array<{ productId: string; isBundle?: boolean; key?: string; name: string; qty: number; shade?: string }>) {
+      if (!item.productId || typeof item.productId !== "string") {
+        return NextResponse.json({ error: "Invalid item: missing productId" }, { status: 400 });
+      }
+      const serverPrice = priceMap.get(item.productId);
+      if (serverPrice === undefined) {
+        return NextResponse.json({ error: `Unknown product: ${item.productId}` }, { status: 400 });
+      }
+      validatedItems.push({
+        productId: item.productId,
+        isBundle: item.isBundle ?? false,
+        name: item.name,
+        qty: Number(item.qty),
+        unitPrice: serverPrice,
+        shade: item.shade,
+      });
+    }
+
+    const subtotal = validatedItems.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+
+    // ── 2. Validate promo code server-side ──────────────────────────
+    let discountAmount = 0;
+    let validatedPromoCode = "";
+    if (promoCode && typeof promoCode === "string") {
+      const promoSnap = await getDocs(collection(db, "promoCodes"));
+      const promoCodes = promoSnap.docs.map(d => d.data() as {
+        code: string; type: "percent" | "fixed"; value: number;
+        active?: boolean; expiresAt?: string; maxUses?: number;
+        usedCount?: number; minOrder?: number;
+      });
+      const normalised = promoCode.trim().toUpperCase();
+      const promo = promoCodes.find(c =>
+        c.code.toUpperCase() === normalised && c.active !== false
+      );
+      if (
+        promo &&
+        !(promo.expiresAt && new Date(promo.expiresAt) < new Date()) &&
+        !(promo.maxUses && (promo.usedCount ?? 0) >= promo.maxUses) &&
+        !(promo.minOrder && subtotal < promo.minOrder)
+      ) {
+        discountAmount = promo.type === "percent"
+          ? Math.round((subtotal * promo.value) / 100)
+          : Math.min(promo.value, subtotal);
+        validatedPromoCode = promo.code;
+      }
+    }
+
     const total = Math.max(0, subtotal + DELIVERY_CHARGE - discountAmount);
-    const pieceCount: number = items.reduce((s: number, i: { qty: number }) => s + i.qty, 0);
-    const itemSummary: string = items.map((i: { name: string; qty: number; shade?: string }) =>
-      `${i.name}${i.shade ? ` (${i.shade})` : ""} ×${i.qty}`
-    ).join(", ");
+    const refNumber = "BB-" + Date.now().toString().slice(-8);
+    const pieceCount = validatedItems.reduce((s, i) => s + i.qty, 0);
+    const itemSummary = validatedItems
+      .map(i => `${i.name}${i.shade ? ` (${i.shade})` : ""} ×${i.qty}`)
+      .join(", ");
 
     const orderData: Omit<Order, "id"> = {
       refNumber,
@@ -175,13 +220,13 @@ export async function POST(req: NextRequest) {
       deliveryAddress,
       cityName,
       transactionNotes: transactionNotes ?? "",
-      items,
+      items: validatedItems,
       itemSummary,
       pieceCount,
       subtotal,
       deliveryCharge: DELIVERY_CHARGE,
       discount: discountAmount,
-      promoCode: promoCode ?? "",
+      promoCode: validatedPromoCode,
       total,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -222,7 +267,6 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Send emails (fire-and-forget — don't block the response)
-    const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
     const emailPromises: Promise<unknown>[] = [];
 
     const gmailUser = process.env.GMAIL_USER;
@@ -244,7 +288,7 @@ export async function POST(req: NextRequest) {
               refNumber, trackingNumber, customerName, customerPhone,
               cityName, deliveryAddress,
               transactionNotes: transactionNotes ?? "",
-              itemSummary, subtotal, total,
+              itemSummary, subtotal, deliveryCharge: DELIVERY_CHARGE, total,
             }),
           })
         );
@@ -258,7 +302,7 @@ export async function POST(req: NextRequest) {
             subject: `Your Beauty Bee order is confirmed — ${refNumber}`,
             html: customerEmailHtml({
               refNumber, trackingNumber, customerName,
-              itemSummary, total, whatsappNumber,
+              itemSummary, total,
             }),
           })
         );
@@ -274,7 +318,6 @@ export async function POST(req: NextRequest) {
       trackingNumber,
       total,
       postexError,
-      whatsappNumber,
       itemSummary,
     });
   } catch (err: unknown) {

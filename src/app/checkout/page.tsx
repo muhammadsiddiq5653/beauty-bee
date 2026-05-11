@@ -8,9 +8,8 @@ import { useCartStore } from "@/store/cart";
 import StoreNav from "@/components/StoreNav";
 import CartDrawer from "@/components/CartDrawer";
 import PromoCodeField from "@/components/PromoCodeField";
-import WhatsAppButton from "@/components/WhatsAppButton";
 
-const DELIVERY = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
+const DELIVERY_DEFAULT = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 
 const FALLBACK_CITIES = [
   "Abbottabad","Attock","Awaran","Badin","Bahawalnagar","Bahawalpur",
@@ -44,8 +43,15 @@ const labelClass = "text-xs font-medium text-[#6B6B6B] block mb-1.5";
 export default function CheckoutPage() {
   const { items, subtotal, itemCount, clearCart } = useCartStore();
   const [promo, setPromo] = useState<PromoResult | null>(null);
+  const [delivery, setDelivery] = useState(DELIVERY_DEFAULT);
   const discount = promo?.discount ?? 0;
-  const finalTotal = Math.max(0, subtotal() + DELIVERY - discount);
+  const finalTotal = Math.max(0, subtotal() + delivery - discount);
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(s => {
+      if (s.deliveryCharge) setDelivery(s.deliveryCharge);
+    }).catch(() => {});
+  }, []);
   const [cities, setCities] = useState<string[]>(FALLBACK_CITIES);
   const [form, setForm] = useState({
     customerName: "",
@@ -91,12 +97,12 @@ export default function CheckoutPage() {
     const err = validate();
     if (err) { setError(err); return; }
     setError(""); setLoading(true);
-    const orderItems = items.map(i => ({ key: i.key, name: i.name, qty: i.qty, unitPrice: i.unitPrice, shade: i.shade }));
+    const orderItems = items.map(i => ({ productId: i.productId, isBundle: i.isBundle, key: i.key, name: i.name, qty: i.qty, shade: i.shade }));
     try {
       const res = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, items: orderItems, promoCode: promo?.code, discount }),
+        body: JSON.stringify({ ...form, items: orderItems, promoCode: promo?.code }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error);
@@ -187,7 +193,6 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-[#FAF7F4]">
       <StoreNav />
       <CartDrawer />
-      <WhatsAppButton />
 
       <div className="max-w-lg mx-auto px-5 py-6 pb-16">
         <Link href="/shop" className="inline-flex items-center gap-1 text-[#6B6B6B] hover:text-[#9B2B47] text-sm font-medium mb-5 transition-colors">
@@ -242,7 +247,7 @@ export default function CheckoutPage() {
                   <span>Subtotal</span><span>Rs. {subtotal().toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm text-[#6B6B6B]">
-                  <span>Delivery (PostEx)</span><span>Rs. {DELIVERY}</span>
+                  <span>Delivery (PostEx)</span><span>Rs. {delivery}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm text-green-600 font-medium">

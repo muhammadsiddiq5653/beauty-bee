@@ -1,16 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Package } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 
-const DELIVERY = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
-
 export default function CartDrawer() {
-  const { items, drawerOpen, closeDrawer, removeItem, updateQty, subtotal, total, itemCount } = useCartStore();
+  const { items, drawerOpen, closeDrawer, removeItem, updateQty, subtotal, itemCount } = useCartStore();
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [delivery, setDelivery] = useState(parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200"));
+  const total = subtotal() > 0 ? subtotal() + delivery : 0;
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(s => {
+      if (s.deliveryCharge) setDelivery(s.deliveryCharge);
+    }).catch(() => {});
+  }, []);
 
   // Close on Escape key
   useEffect(() => {
@@ -122,11 +128,11 @@ export default function CartDrawer() {
               </div>
               <div className="flex justify-between text-sm text-[#6B6B6B]">
                 <span>Delivery (PostEx COD)</span>
-                <span>Rs. {DELIVERY}</span>
+                <span>Rs. {delivery}</span>
               </div>
               <div className="flex justify-between font-bold text-[#9B2B47] text-base border-t border-[#EDE8E4] pt-1.5">
                 <span>Total (COD)</span>
-                <span>Rs. {total().toLocaleString()}</span>
+                <span>Rs. {total.toLocaleString()}</span>
               </div>
             </div>
 

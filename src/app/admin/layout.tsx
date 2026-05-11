@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ShoppingBag, Package, BarChart3,
-  Truck, LogOut, Menu, X, ChevronRight, Eye, EyeOff
+  Truck, LogOut, Menu, X, ChevronRight, Eye, EyeOff, Settings, Tag
 } from "lucide-react";
 import {
   signInWithEmailAndPassword,
@@ -20,7 +21,9 @@ const NAV = [
   { href: "/admin/orders",    label: "Orders",     icon: ShoppingBag },
   { href: "/admin/postex",    label: "PostEx",     icon: Truck },
   { href: "/admin/products",  label: "Products",   icon: Package },
+  { href: "/admin/promos",    label: "Promos",     icon: Tag },
   { href: "/admin/analytics", label: "Analytics",  icon: BarChart3 },
+  { href: "/admin/settings",  label: "Settings",   icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -74,8 +77,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
         <form onSubmit={login} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl">
           <div className="text-center mb-6">
-            <div className="w-14 h-14 bg-[#F9ECF0] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">🐝</span>
+            <div className="flex justify-center mb-4">
+              <Image src="/logo.svg" alt="Beauty Bee" width={120} height={48} />
             </div>
             <h1 className="font-serif font-bold text-xl text-[#1A1A1A]">Beauty Bee Admin</h1>
             <p className="text-sm text-[#6B6B6B] mt-1">Sign in with your admin account</p>
@@ -139,8 +142,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Sidebar — desktop */}
       <aside className="hidden md:flex flex-col w-60 bg-white border-r border-gray-100 shadow-sm fixed h-full z-30">
         <div className="p-5 border-b border-gray-100">
-          <div className="text-2xl">🐝</div>
-          <div className="font-serif font-bold text-[#9B2B47] text-base">Beauty Bee</div>
+          <Image src="/logo.svg" alt="Beauty Bee" width={100} height={40} className="mb-1" />
           <div className="text-xs text-[#6B6B6B] mt-0.5 truncate">{user.email}</div>
         </div>
         <nav className="flex-1 py-4 px-3 space-y-1">
@@ -173,9 +175,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Mobile header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-sm flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🐝</span>
-          <span className="font-serif font-bold text-[#9B2B47]">Admin</span>
+        <div className="flex items-center">
+          <Image src="/logo.svg" alt="Beauty Bee" width={90} height={36} />
         </div>
         <button onClick={() => setSideOpen(!sideOpen)} className="text-gray-500">
           {sideOpen ? <X size={22} /> : <Menu size={22} />}
@@ -187,7 +188,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="md:hidden fixed inset-0 z-50 bg-black/40" onClick={() => setSideOpen(false)}>
           <div className="bg-white w-64 h-full shadow-xl p-4" onClick={e => e.stopPropagation()}>
             <div className="mb-4 pb-3 border-b border-gray-100">
-              <div className="font-serif font-bold text-[#9B2B47] text-base">🐝 Beauty Bee</div>
+              <Image src="/logo.svg" alt="Beauty Bee" width={90} height={36} />
               <div className="text-xs text-[#6B6B6B] mt-0.5 truncate">{user.email}</div>
             </div>
             <nav className="space-y-1">

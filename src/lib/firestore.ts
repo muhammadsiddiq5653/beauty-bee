@@ -4,9 +4,10 @@
  *   orders/    — every Beauty Bee order
  *   products/  — product catalogue
  *   bundles/   — bundle catalogue
+ *   settings/  — store configuration (single doc: settings/store)
  */
 import {
-  collection, doc, addDoc, updateDoc, getDocs, getDoc,
+  collection, doc, addDoc, updateDoc, setDoc, getDocs, getDoc,
   query, orderBy, limit, where, Timestamp, onSnapshot,
   DocumentSnapshot, QuerySnapshot,
 } from "firebase/firestore";
@@ -94,14 +95,18 @@ export async function getProducts(): Promise<Product[]> {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
 }
 
+function stripUndefined<T extends object>(obj: T): T {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+}
+
 export async function saveProduct(product: Omit<Product, "id"> & { id?: string }): Promise<string> {
   const now = new Date().toISOString();
   if (product.id) {
     const { id, ...data } = product;
-    await updateDoc(doc(db, "products", id), { ...data, updatedAt: now });
+    await updateDoc(doc(db, "products", id), stripUndefined({ ...data, updatedAt: now }));
     return id;
   } else {
-    const ref = await addDoc(collection(db, "products"), { ...product, createdAt: now, updatedAt: now });
+    const ref = await addDoc(collection(db, "products"), stripUndefined({ ...product, createdAt: now, updatedAt: now }));
     return ref.id;
   }
 }
@@ -130,4 +135,27 @@ export async function saveBundle(bundle: Omit<Bundle, "id"> & { id?: string }): 
 
 export async function deleteBundle(id: string): Promise<void> {
   await updateDoc(doc(db, "bundles", id), { active: false });
+}
+
+// ─── Store Settings ────────────────────────────────────────────
+export interface StoreSettings {
+  deliveryCharge: number;
+  freeDeliveryThreshold: number;  // 0 = disabled
+  whatsappNumber: string;
+}
+
+const DEFAULT_SETTINGS: StoreSettings = {
+  deliveryCharge: parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200"),
+  freeDeliveryThreshold: 0,
+  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "",
+};
+
+export async function getStoreSettings(): Promise<StoreSettings> {
+  const snap = await getDoc(doc(db, "settings", "store"));
+  if (!snap.exists()) return { ...DEFAULT_SETTINGS };
+  return { ...DEFAULT_SETTINGS, ...snap.data() } as StoreSettings;
+}
+
+export async function updateStoreSettings(data: Partial<StoreSettings>): Promise<void> {
+  await setDoc(doc(db, "settings", "store"), data, { merge: true });
 }

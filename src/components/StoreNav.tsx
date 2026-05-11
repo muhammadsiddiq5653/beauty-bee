@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ShoppingBag, Package } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 
@@ -12,12 +13,8 @@ export default function StoreNav() {
     <header className="bg-white border-b border-[#EDE8E4] sticky top-0 z-40">
       <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="text-xl">🐝</span>
-          <div>
-            <div className="font-serif font-bold text-[#9B2B47] text-base leading-none tracking-wide">BEAUTY BEE</div>
-            <div className="text-[9px] text-[#6B6B6B] leading-none tracking-widest uppercase mt-0.5">Organic Beauty</div>
-          </div>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo.svg" alt="Beauty Bee" width={110} height={44} priority />
         </Link>
 
         {/* Right actions */}

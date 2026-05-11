@@ -17,7 +17,7 @@ import UrgencyBadge from "@/components/UrgencyBadge";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import type { Product, Bundle } from "@/types";
 
-const DELIVERY = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
+const DELIVERY_DEFAULT = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 
 function useReveal() {
   const ref = useRef<HTMLDivElement>(null);
@@ -318,6 +318,13 @@ export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [delivery, setDelivery] = useState(DELIVERY_DEFAULT);
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(s => {
+      if (s.deliveryCharge) setDelivery(s.deliveryCharge);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -506,7 +513,7 @@ export default function ShopPage() {
               <div className="relative z-10">
                 <p className="text-xs font-semibold tracking-[0.2em] uppercase text-white/60 mb-3">Nationwide Shipping</p>
                 <h3 className="font-serif font-bold text-2xl mb-2">
-                  Flat Rs. {DELIVERY} Delivery Anywhere in Pakistan
+                  Flat Rs. {delivery} Delivery Anywhere in Pakistan
                 </h3>
                 <p className="text-sm text-white/75 mb-6">
                   Cash on Delivery · PostEx Tracking · 2–5 Working Days

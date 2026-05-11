@@ -9,7 +9,10 @@ export async function POST(req: NextRequest) {
   try {
     const { pin } = await req.json();
     // Use server-only ADMIN_PIN; fall back to NEXT_PUBLIC_ADMIN_PIN for backwards compatibility
-    const correctPin = process.env.ADMIN_PIN ?? process.env.NEXT_PUBLIC_ADMIN_PIN ?? "1234";
+    const correctPin = process.env.ADMIN_PIN ?? process.env.NEXT_PUBLIC_ADMIN_PIN;
+    if (!correctPin) {
+      return NextResponse.json({ ok: false }, { status: 500 });
+    }
 
     if (!pin || typeof pin !== "string") {
       return NextResponse.json({ ok: false }, { status: 400 });

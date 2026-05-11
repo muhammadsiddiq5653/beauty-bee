@@ -91,7 +91,7 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="hero-animated text-white relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {["✨","🌸","💕","🌿","⭐","🐝"].map((p, i) => (
+          {["✨","🌸","💕","🌿","⭐","🌺"].map((p, i) => (
             <div key={i} className="absolute text-2xl opacity-20 animate-float"
               style={{ left: `${10 + i * 15}%`, top: `${20 + (i % 3) * 25}%`, animationDuration: `${3 + i * 0.5}s`, animationDelay: `${i * 0.4}s` }}>
               {p}
@@ -99,7 +99,7 @@ export default function AboutPage() {
           ))}
         </div>
         <div className="relative z-10 max-w-2xl mx-auto px-4 py-16 text-center">
-          <div className="text-6xl mb-4 animate-float">🐝</div>
+          <div className="mb-4 flex justify-center animate-float"><img src="/logo.svg" alt="Beauty Bee" className="h-16 brightness-0 invert" /></div>
           <p className="text-xs font-bold tracking-widest uppercase text-white/60 mb-2 animate-fade-in">Our Story</p>
           <h1 className="text-4xl font-black mb-4 animate-slide-up">About Beauty Bee</h1>
           <p className="text-white/80 max-w-md mx-auto text-sm leading-relaxed animate-fade-in delay-200">
@@ -252,7 +252,7 @@ export default function AboutPage() {
         {/* CTA */}
         <RevealSection className="mt-10 hero-animated rounded-3xl p-8 text-white text-center shadow-lg relative overflow-hidden">
           <div className="relative z-10">
-            <div className="text-4xl mb-3 animate-float">🐝</div>
+            <div className="mb-3 flex justify-center animate-float"><img src="/logo.svg" alt="Beauty Bee" className="h-12 brightness-0 invert" /></div>
             <h3 className="font-black text-xl mb-2">Ready to Glow?</h3>
             <p className="text-white/80 text-sm mb-5">Shop our full range of organic beauty products with COD delivery anywhere in Pakistan.</p>
             <Link href="/shop"

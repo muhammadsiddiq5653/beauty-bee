@@ -61,10 +61,12 @@ export type OrderStatus =
   | "cancelled";
 
 export interface OrderItem {
+  productId: string;
   name: string;
   qty: number;
   unitPrice: number;
   shade?: string;
+  isBundle?: boolean;
 }
 
 export interface Order {

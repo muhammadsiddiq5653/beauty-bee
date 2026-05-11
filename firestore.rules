@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == "Ltpv243kt0fmAWqg86neovZKiFB2";
+    }
+
+    // Products — public read, admin write
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Bundles — public read, admin write
+    match /bundles/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders — anyone can create (customers), admin can read/update/delete
+    match /orders/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Promo codes — public read (checkout validation), admin write
+    match /promoCodes/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Store settings — public read (delivery charge etc.), admin write
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
