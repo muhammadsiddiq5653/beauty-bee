@@ -4,6 +4,11 @@ export interface Shade {
   hex?: string;
 }
 
+export interface MediaItem {
+  type: "image" | "video";
+  url: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -19,6 +24,7 @@ export interface Product {
   active: boolean;
   stock?: number;
   imageUrl?: string;
+  media?: MediaItem[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -33,6 +39,7 @@ export interface Bundle {
   productIds: string[];
   active: boolean;
   imageUrl?: string;
+  media?: MediaItem[];
   createdAt?: string;
 }
 

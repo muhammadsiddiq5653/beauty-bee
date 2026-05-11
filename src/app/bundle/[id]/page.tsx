@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { getBundles } from "@/lib/firestore";
 import { useCartStore } from "@/store/cart";
+import MediaGallery from "@/components/MediaGallery";
 import StoreNav from "@/components/StoreNav";
 import CartDrawer from "@/components/CartDrawer";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -72,14 +73,14 @@ export default function BundleDetailPage() {
           <ChevronLeft size={16} /> Back to Shop
         </Link>
 
-        {/* Image / Emoji hero */}
-        <div className="w-full aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center mb-6 shadow-sm border border-[#EDE8E4]">
-          {bundle.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={bundle.imageUrl} alt={bundle.name} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-8xl">{bundle.emoji}</span>
-          )}
+        {/* Media gallery */}
+        <div className="rounded-3xl overflow-hidden shadow-sm border border-[#EDE8E4] mb-6">
+          <MediaGallery
+            media={bundle.media ?? []}
+            fallbackImageUrl={bundle.imageUrl}
+            fallbackEmoji={bundle.emoji}
+            alt={bundle.name}
+          />
         </div>
 
         {/* Title & price */}

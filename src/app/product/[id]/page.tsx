@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import {
   ChevronLeft, Plus, Minus, ShoppingBag, Star,
   Shield, Truck, Package, CheckCircle, RefreshCw, Leaf
 } from "lucide-react";
 import { getProducts } from "@/lib/firestore";
 import { useCartStore } from "@/store/cart";
+import MediaGallery from "@/components/MediaGallery";
 import StoreNav from "@/components/StoreNav";
 import CartDrawer from "@/components/CartDrawer";
 import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
@@ -94,20 +94,21 @@ export default function ProductDetailPage() {
         </div>
 
         <div className="bg-white rounded-3xl border border-[#EDE8E4] overflow-hidden">
-          {/* Product image */}
-          <div className="relative bg-[#F2EDE8] h-72 flex items-center justify-center">
-            {product.imageUrl ? (
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
-            ) : (
-              <span className="text-9xl">{product.emoji}</span>
-            )}
+          {/* Media gallery */}
+          <div className="relative">
+            <MediaGallery
+              media={product.media ?? []}
+              fallbackImageUrl={product.imageUrl}
+              fallbackEmoji={product.emoji}
+              alt={product.name}
+            />
             {savingsPct > 0 && (
-              <span className="absolute top-4 left-4 bg-[#9B2B47] text-white text-xs font-semibold px-3 py-1 rounded-full">
+              <span className="absolute top-4 left-4 bg-[#9B2B47] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
                 −{savingsPct}% OFF
               </span>
             )}
             {product.badge && (
-              <span className="absolute top-4 right-4 bg-white text-[#9B2B47] text-xs font-semibold px-3 py-1 rounded-full border border-[#EDE8E4] shadow-sm">
+              <span className="absolute top-4 right-4 bg-white text-[#9B2B47] text-xs font-semibold px-3 py-1 rounded-full border border-[#EDE8E4] shadow-sm z-10">
                 {product.badge}
               </span>
             )}

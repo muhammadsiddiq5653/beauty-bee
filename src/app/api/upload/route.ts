@@ -16,6 +16,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Cloudinary not configured" }, { status: 500 });
   }
 
+  const isVideo = file.type.startsWith("video/");
+  const resourceType = isVideo ? "video" : "image";
+
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
   const signature = createHash("sha1").update(paramsToSign + apiSecret).digest("hex");
@@ -27,7 +30,7 @@ export async function POST(req: NextRequest) {
   upload.append("folder", folder);
   upload.append("signature", signature);
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
     method: "POST",
     body: upload,
   });
@@ -38,5 +41,5 @@ export async function POST(req: NextRequest) {
   }
 
   const data = await res.json();
-  return NextResponse.json({ url: data.secure_url });
+  return NextResponse.json({ url: data.secure_url, type: resourceType });
 }
