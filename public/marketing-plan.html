@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beauty Bee — Multi-Platform Marketing Plan 2026</title>
+  <style>
+    :root {
+      --rose: #9B2B47;
+      --rose-light: #F9ECF0;
+      --rose-mid: #D4627A;
+      --gold: #C9A84C;
+      --dark: #1A1A1A;
+      --mid: #4A4A4A;
+      --muted: #6B6B6B;
+      --bg: #FAF7F4;
+      --card: #FFFFFF;
+      --border: #EDE8E4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); line-height: 1.6; }
+
+    /* ── Nav ── */
+    nav {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      padding: 0 2rem;
+      display: flex; align-items: center; gap: 2rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    .nav-brand { font-weight: 800; font-size: 1.1rem; color: var(--rose); white-space: nowrap; padding: 1rem 0; }
+    nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; font-weight: 600; white-space: nowrap; padding: 1rem 0; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    nav a:hover, nav a.active { color: var(--rose); border-bottom-color: var(--rose); }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .hero {
+      background: linear-gradient(135deg, var(--rose) 0%, #7d2239 100%);
+      color: white; padding: 4rem 2rem; text-align: center;
+    }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 0.75rem; }
+    .hero p { opacity: 0.85; font-size: 1.1rem; max-width: 600px; margin: 0 auto 1.5rem; }
+    .hero .badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 100px; padding: 0.35rem 1rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+
+    /* ── Section ── */
+    section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
+    section:last-child { border-bottom: none; }
+    .section-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--rose); margin-bottom: 0.5rem; }
+    .section-title { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 800; color: var(--dark); margin-bottom: 0.5rem; }
+    .section-sub { color: var(--muted); font-size: 0.95rem; max-width: 640px; margin-bottom: 2rem; }
+
+    /* ── Cards ── */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+      padding: 1.5rem; transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .card:hover { box-shadow: 0 8px 32px rgba(155,43,71,0.1); transform: translateY(-2px); }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .card p { font-size: 0.85rem; color: var(--muted); }
+    .card .icon { font-size: 2rem; margin-bottom: 0.75rem; }
+    .card .tag { display: inline-block; background: var(--rose-light); color: var(--rose); font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 100px; margin-bottom: 0.75rem; }
+    .card .tag.green { background: #E8F5E9; color: #2E7D32; }
+    .card .tag.blue { background: #E3F2FD; color: #1565C0; }
+    .card .tag.orange { background: #FFF3E0; color: #E65100; }
+    .card .tag.gold { background: #FFF8E1; color: #F57F17; }
+
+    /* ── Platform Cards ── */
+    .platform-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+      padding: 1.5rem; display: flex; gap: 1rem; align-items: flex-start;
+    }
+    .platform-icon { font-size: 2.5rem; flex-shrink: 0; width: 60px; text-align: center; }
+    .platform-body { flex: 1; }
+    .platform-body h3 { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem; }
+    .platform-body .meta { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .platform-body ul { list-style: none; }
+    .platform-body ul li { font-size: 0.85rem; color: var(--mid); padding: 0.2rem 0; display: flex; gap: 0.4rem; }
+    .platform-body ul li::before { content: "→"; color: var(--rose); flex-shrink: 0; }
+    .priority { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 100px; margin-left: 0.5rem; }
+    .priority.high { background: #FFEBEE; color: #C62828; }
+    .priority.medium { background: #FFF8E1; color: #F57F17; }
+    .priority.low { background: #E8F5E9; color: #2E7D32; }
+
+    /* ── Timeline ── */
+    .timeline { position: relative; }
+    .timeline::before { content: ""; position: absolute; left: 24px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    .tl-item { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; position: relative; }
+    .tl-dot {
+      width: 50px; height: 50px; border-radius: 50%; background: var(--rose);
+      color: white; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.9rem; flex-shrink: 0; position: relative; z-index: 1;
+    }
+    .tl-dot.phase2 { background: var(--gold); }
+    .tl-dot.phase3 { background: var(--dark); }
+    .tl-content { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; margin-top: 6px; }
+    .tl-content h3 { font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem; }
+    .tl-content .weeks { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .tl-tasks { list-style: none; }
+    .tl-tasks li { font-size: 0.85rem; color: var(--mid); padding: 0.25rem 0; display: flex; align-items: flex-start; gap: 0.5rem; }
+    .tl-tasks li .check { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; margin-top: 1px; cursor: pointer; transition: all 0.2s; }
+    .tl-tasks li .check:hover { border-color: var(--rose); background: var(--rose-light); }
+    .tl-tasks li.done .check { background: var(--rose); border-color: var(--rose); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6l3 3 5-5' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); }
+    .tl-tasks li.done span { text-decoration: line-through; color: var(--muted); }
+
+    /* ── Content Formats ── */
+    .content-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
+    .content-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+    .content-card-header { padding: 1rem 1.25rem 0.75rem; border-bottom: 1px solid var(--border); }
+    .content-card-header h3 { font-weight: 700; font-size: 1rem; }
+    .content-card-header .format-type { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem; }
+    .content-card-body { padding: 1rem 1.25rem; }
+    .idea-item { border-left: 3px solid var(--rose-light); padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 0 8px 8px 0; font-size: 0.82rem; color: var(--mid); }
+    .idea-item strong { display: block; font-size: 0.8rem; color: var(--dark); margin-bottom: 0.1rem; }
+
+    /* ── KPI Table ── */
+    table { width: 100%; border-collapse: collapse; }
+    th { background: var(--rose); color: white; padding: 0.75rem 1rem; text-align: left; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; }
+    th:first-child { border-radius: 12px 0 0 0; }
+    th:last-child { border-radius: 0 12px 0 0; }
+    td { padding: 0.75rem 1rem; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #FAFAFA; }
+    tr:hover td { background: var(--rose-light); }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; cursor: pointer; accent-color: var(--rose); flex-shrink: 0; }
+    .checklist li label { cursor: pointer; color: var(--mid); }
+    .checklist li input:checked + label { text-decoration: line-through; color: var(--muted); }
+    .checklist li .week { font-size: 0.7rem; font-weight: 700; color: var(--rose); background: var(--rose-light); padding: 0.1rem 0.5rem; border-radius: 100px; margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+
+    /* ── Tips box ── */
+    .tip-box { background: var(--rose-light); border-left: 4px solid var(--rose); border-radius: 0 12px 12px 0; padding: 1rem 1.25rem; margin: 1.5rem 0; }
+    .tip-box strong { color: var(--rose); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; }
+    .tip-box p { font-size: 0.875rem; color: var(--mid); margin-top: 0.25rem; }
+
+    /* ── Pill badges ── */
+    .pill { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--rose-light); color: var(--rose); font-size: 0.75rem; font-weight: 600; padding: 0.3rem 0.75rem; border-radius: 100px; }
+
+    /* ── Footer ── */
+    footer { background: var(--dark); color: white; text-align: center; padding: 2rem; font-size: 0.85rem; opacity: 0.8; }
+
+    /* ── Print ── */
+    @media print {
+      nav { display: none; }
+      .card:hover { box-shadow: none; transform: none; }
+    }
+    @media (max-width: 600px) {
+      .platform-card { flex-direction: column; }
+      .tl-item { gap: 1rem; }
+      .timeline::before { left: 20px; }
+      .tl-dot { width: 42px; height: 42px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <span class="nav-brand">🐝 Beauty Bee</span>
+  <a href="#overview">Overview</a>
+  <a href="#platforms">Platforms</a>
+  <a href="#content">Content Ideas</a>
+  <a href="#timeline">Timeline</a>
+  <a href="#pixels">Pixels Setup</a>
+  <a href="#kpis">KPIs</a>
+  <a href="#checklist">Checklist</a>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <span class="badge">Marketing Playbook 2026</span>
+  <h1>Beauty Bee Growth Plan</h1>
+  <p>Multi-platform audience expansion — from Instagram-only to a full cross-channel brand presence in Pakistan.</p>
+</div>
+
+<!-- ── OVERVIEW ── -->
+<section id="overview">
+  <div class="container">
+    <p class="section-label">The Big Picture</p>
+    <h2 class="section-title">Strategy Overview</h2>
+    <p class="section-sub">You have a working website + strong Instagram. The plan is to diversify traffic sources so no single platform can hurt your business.</p>
+
+    <div class="grid-4">
+      <div class="card" style="border-top: 4px solid var(--rose);">
+        <div class="icon">📱</div>
+        <h3>TikTok</h3>
+        <p>Fastest organic reach right now. Repurpose existing Reels. Gen Z + Millennial beauty audience.</p>
+        <br><span class="pill">Start Week 1</span>
+      </div>
+      <div class="card" style="border-top: 4px solid #1877F2;">
+        <div class="icon">📘</div>
+        <h3>Facebook</h3>
+        <p>Older demographic, community groups, cross-post from Meta Business Suite — zero extra work.</p>
+        <br><span class="pill" style="background:#E8F0FE;color:#1877F2">Start Week 1</span>
+      </div>
+      <div class="card" style="border-top: 4px solid #E60023;">
+        <div class="icon">📌</div>
+        <h3>Pinterest</h3>
+        <p>Evergreen beauty discovery. Pins drive traffic for months. Free + powerful SEO boost.</p>
+        <br><span class="pill" style="background:#FFEBEE;color:#C62828">Start Week 1</span>
+      </div>
+      <div class="card" style="border-top: 4px solid var(--gold);">
+        <div class="icon">📧</div>
+        <h3>Email List</h3>
+        <p>Highest ROI channel. You own it forever. Popup already live on website.</p>
+        <br><span class="pill" style="background:#FFF8E1;color:#F57F17">Already Live ✓</span>
+      </div>
+      <div class="card" style="border-top: 4px solid #FF0000;">
+        <div class="icon">▶️</div>
+        <h3>YouTube Shorts</h3>
+        <p>Tutorial content builds authority. Feeds Google search traffic long-term.</p>
+        <br><span class="pill" style="background:#FFEBEE;color:#C62828">Start Month 2</span>
+      </div>
+      <div class="card" style="border-top: 4px solid #34A853;">
+        <div class="icon">🔍</div>
+        <h3>Google SEO</h3>
+        <p>Claim Google Business Profile. Blog content for "lip tint Pakistan" searches.</p>
+        <br><span class="pill" style="background:#E8F5E9;color:#2E7D32">Start Month 2</span>
+      </div>
+      <div class="card" style="border-top: 4px solid var(--rose-mid);">
+        <div class="icon">🤝</div>
+        <h3>Influencers</h3>
+        <p>Nano influencers (5k–50k). Product exchange, no cash. Authentic + affordable.</p>
+        <br><span class="pill">Month 2–3</span>
+      </div>
+      <div class="card" style="border-top: 4px solid var(--dark);">
+        <div class="icon">💰</div>
+        <h3>Paid Ads</h3>
+        <p>Start small: Rs. 1,000–2,000/day. TikTok Spark Ads + Meta retargeting.</p>
+        <br><span class="pill" style="background:#F3E5F5;color:#6A1B9A">Month 3</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PLATFORMS ── -->
+<section id="platforms">
+  <div class="container">
+    <p class="section-label">Platform Deep Dive</p>
+    <h2 class="section-title">How to Win on Each Platform</h2>
+    <p class="section-sub">Specific tactics, post frequency, and what content works best per platform.</p>
+
+    <div class="grid-2">
+
+      <div class="platform-card">
+        <div class="platform-icon">🎵</div>
+        <div class="platform-body">
+          <h3>TikTok <span class="priority high">Top Priority</span></h3>
+          <div class="meta">Post: 1–2x daily · Best time: 7–9pm PKT · Format: 15–60 sec vertical video</div>
+          <ul>
+            <li>Hook in first 1.5 seconds — show the transformation immediately</li>
+            <li>Use trending sounds from TikTok's Commercial Sound Library</li>
+            <li>Hashtags: #LipTint #PakistaniBeauty #GlowUp #BeautyTips #MakeupPK</li>
+            <li>Caption: one question to drive comments ("which shade are you?")</li>
+            <li>Reply to every comment in first hour — TikTok rewards engagement</li>
+            <li>Stitch/Duet popular beauty videos to borrow their audience</li>
+            <li>Link: website in bio via one.link or Linktree</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="platform-card">
+        <div class="platform-icon">📘</div>
+        <div class="platform-body">
+          <h3>Facebook <span class="priority medium">Medium</span></h3>
+          <div class="meta">Post: 4–5x/week · Use Meta Business Suite to auto-cross-post from Instagram</div>
+          <ul>
+            <li>Create Facebook Page — mirrors your Instagram content automatically</li>
+            <li>Create private Facebook Group: "Beauty Bee Girls Pakistan" — community</li>
+            <li>Post polls, questions, shade votes in the group weekly</li>
+            <li>Facebook Reels performing very well — upload natively for more reach</li>
+            <li>Run a Facebook giveaway monthly — "share + tag a friend to win"</li>
+            <li>Facebook Shop — sync your products for in-app discovery</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="platform-card">
+        <div class="platform-icon">📌</div>
+        <div class="platform-body">
+          <h3>Pinterest <span class="priority medium">Medium</span></h3>
+          <div class="meta">Post: 5–10 pins/day (can schedule) · Traffic peaks 3–6 months after posting</div>
+          <ul>
+            <li>Claim your website in Pinterest settings (boosts trust + SEO)</li>
+            <li>Create boards: "Pakistani Makeup Looks", "Lip Tint Shades", "Skincare Routine"</li>
+            <li>Pin every product photo, lifestyle shot, tutorial screenshot</li>
+            <li>Write keyword-rich descriptions: "organic lip tint Pakistan cash on delivery"</li>
+            <li>Create Idea Pins (multi-frame tutorials) — highest reach format</li>
+            <li>Use Tailwind app to schedule 30 days of pins in one sitting</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="platform-card">
+        <div class="platform-icon">▶️</div>
+        <div class="platform-body">
+          <h3>YouTube Shorts <span class="priority medium">Medium</span></h3>
+          <div class="meta">Post: 3–4x/week Shorts + 1 long video/month · Feeds Google search</div>
+          <ul>
+            <li>Shorts: repurpose your TikToks (same content, upload natively)</li>
+            <li>Long video ideas: "I tried 6 lip tints for 30 days", "Full glam tutorial"</li>
+            <li>Title formula: "Pakistan's Best Lip Tint? We Tested All 6 Shades"</li>
+            <li>Add your website link in every video description</li>
+            <li>YouTube description = Google-indexed — use keywords naturally</li>
+            <li>Community tab: polls, shade vote, behind the scenes</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="platform-card">
+        <div class="platform-icon">📧</div>
+        <div class="platform-body">
+          <h3>Email Marketing <span class="priority high">Top Priority</span></h3>
+          <div class="meta">Send: 1x/week · Tool: Mailchimp (free up to 500) or Klaviyo · Already collecting!</div>
+          <ul>
+            <li>Welcome email: sent immediately with 10% discount code</li>
+            <li>Week 2: "How to apply lip & cheek tint" tutorial</li>
+            <li>Week 3: Customer story / before & after</li>
+            <li>Week 4: New shade spotlight or bundle deal</li>
+            <li>Segment: buyers vs non-buyers — different messages</li>
+            <li>Abandoned cart email: "You forgot your shade!" — highest ROI email</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="platform-card">
+        <div class="platform-icon">🔍</div>
+        <div class="platform-body">
+          <h3>Google SEO + GBP <span class="priority low">Long Game</span></h3>
+          <div class="meta">Takes 3–6 months · Free · Highest intent traffic</div>
+          <ul>
+            <li>Claim Google Business Profile at business.google.com (free)</li>
+            <li>Add all products, photos, hours, WhatsApp number</li>
+            <li>Ask every customer to leave a Google review</li>
+            <li>Write 2 blog posts/month: "Best lip tint for Pakistani skin tones"</li>
+            <li>Target keywords: "lip tint Pakistan", "organic lip colour COD"</li>
+            <li>Add alt text to all product images with keywords</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTENT IDEAS ── -->
+<section id="content">
+  <div class="container">
+    <p class="section-label">Content Creation</p>
+    <h2 class="section-title">Content Ideas by Format</h2>
+    <p class="section-sub">Never run out of ideas. Mix these content types to keep your audience engaged and attract new followers.</p>
+
+    <div class="tip-box">
+      <strong>💡 The Repurposing Rule</strong>
+      <p>Create once → publish everywhere. One 30-second video = TikTok + Instagram Reel + YouTube Short + Facebook Reel + Pinterest Video Pin. This saves 80% of your content creation time.</p>
+    </div>
+
+    <div class="content-grid">
+
+      <div class="content-card">
+        <div class="content-card-header">
+          <div class="format-type">📹 Short Video (15–60 sec)</div>
+          <h3>Transformation Content</h3>
+        </div>
+        <div class="content-card-body">
+          <div class="idea-item">
+            <strong>Before & After Application</strong>
+            Bare lips → full colour in 10 seconds. Most viral format in beauty.
+          </div>
+          <div class="idea-item">
+            <strong>GRWM (Get Ready With Me)</strong>
+            Morning routine featuring your lip tint. Relatable, high retention.
+          </div>
+          <div class="idea-item">
+            <strong>All 6 Shades in 60 Seconds</strong>
+            Swatch all shades on lips — shade comparison videos always go viral.
+          </div>
+          <div class="idea-item">
+            <strong>Morning → Night Transformation</strong>
+            Same tint, different looks. Shows versatility of the product.
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="content-card-header">
+          <div class="format-type">🎓 Educational Content</div>
+          <h3>Tips & Tutorials</h3>
+        </div>
+        <div class="content-card-body">
+          <div class="idea-item">
+            <strong>How to Apply for Maximum Pigment</strong>
+            Tutorial-style with step-by-step tips.
+          </div>
+          <div class="idea-item">
+            <strong>Which Shade Suits Your Skin Tone?</strong>
+            Guide for fair / medium / deep skin — huge shareability.
+          </div>
+          <div class="idea-item">
+            <strong>Lip Tint vs Lipstick: The Truth</strong>
+            Educational comparison — positions you as an expert.
+          </div>
+          <div class="idea-item">
+            <strong>3 Ways to Use Lip & Cheek Tint</strong>
+            Lips, cheeks, eyelids — show the versatility.
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="content-card-header">
+          <div class="format-type">🌟 Social Proof</div>
+          <h3>Trust Building</h3>
+        </div>
+        <div class="content-card-body">
+          <div class="idea-item">
+            <strong>Customer Unboxing</strong>
+            Repost customer unboxing videos with permission. Free content + social proof.
+          </div>
+          <div class="idea-item">
+            <strong>Review Reading Series</strong>
+            Read real reviews out loud on camera. Authentic and builds trust.
+          </div>
+          <div class="idea-item">
+            <strong>500 Reviews Milestone</strong>
+            Celebrate with the audience — thank you video + giveaway.
+          </div>
+          <div class="idea-item">
+            <strong>DM Reactions</strong>
+            Screenshot positive DMs (with permission) and react on camera.
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="content-card-header">
+          <div class="format-type">🎭 Trending Formats</div>
+          <h3>Viral Potential</h3>
+        </div>
+        <div class="content-card-body">
+          <div class="idea-item">
+            <strong>POV: You Finally Found Your Shade</strong>
+            Use trending TikTok POV format with your product reveal.
+          </div>
+          <div class="idea-item">
+            <strong>Expectation vs Reality</strong>
+            "What I thought organic lip tint would look like vs what it actually is"
+          </div>
+          <div class="idea-item">
+            <strong>Guess My Shade</strong>
+            Cover up the product, show lips — ask followers to guess the shade.
+          </div>
+          <div class="idea-item">
+            <strong>Day in My Life (featuring product)</strong>
+            Natural product integration in lifestyle content — most organic feeling.
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="content-card-header">
+          <div class="format-type">🖼️ Static / Carousel</div>
+          <h3>Feed & Pinterest</h3>
+        </div>
+        <div class="content-card-body">
+          <div class="idea-item">
+            <strong>Shade Swatch Grid</strong>
+            All 6 shades in one image. Perfect Pinterest pin + Instagram post.
+          </div>
+          <div class="idea-item">
+            <strong>"Your mood → your shade" Infographic</strong>
+            Bold/Romantic/Natural mood match to specific shades.
+          </div>
+          <div class="idea-item">
+            <strong>Ingredient Spotlight</strong>
+            "What's actually in your lip tint" — builds organic/clean beauty credibility.
+          </div>
+          <div class="idea-item">
+            <strong>Packaging Flat Lay</strong>
+            Aesthetic product shots with flowers, fabric — great for Pinterest.
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="content-card-header">
+          <div class="format-type">📝 Story / Email Content</div>
+          <h3>Engagement & Retention</h3>
+        </div>
+        <div class="content-card-body">
+          <div class="idea-item">
+            <strong>Shade of the Week Poll</strong>
+            Instagram/Facebook Stories poll — which shade is your fav this week?
+          </div>
+          <div class="idea-item">
+            <strong>Behind the Scenes</strong>
+            Packaging orders, creating shades, day at the office — humanises the brand.
+          </div>
+          <div class="idea-item">
+            <strong>This or That: Shade Edition</strong>
+            Quick story game — keeps followers coming back.
+          </div>
+          <div class="idea-item">
+            <strong>Email: "Your Order is Ready" Story</strong>
+            Tell the story of one customer's order from purchase to delivery.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Content Calendar Template -->
+    <div style="margin-top: 2rem;">
+      <h3 style="font-weight: 700; margin-bottom: 1rem; font-size: 1.1rem;">Weekly Content Calendar Template</h3>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>TikTok</th>
+              <th>Instagram</th>
+              <th>Facebook</th>
+              <th>Pinterest</th>
+              <th>Stories</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Mon</strong></td><td>Tutorial video</td><td>Reel (same)</td><td>Auto cross-post</td><td>3 pins</td><td>Shade poll</td></tr>
+            <tr><td><strong>Tue</strong></td><td>Before/after</td><td>—</td><td>—</td><td>3 pins</td><td>Behind scenes</td></tr>
+            <tr><td><strong>Wed</strong></td><td>Customer review</td><td>Carousel post</td><td>Auto cross-post</td><td>3 pins</td><td>This or that</td></tr>
+            <tr><td><strong>Thu</strong></td><td>Trending format</td><td>Reel (same)</td><td>Auto cross-post</td><td>3 pins</td><td>Q&A</td></tr>
+            <tr><td><strong>Fri</strong></td><td>GRWM / lifestyle</td><td>—</td><td>—</td><td>3 pins</td><td>Weekend look</td></tr>
+            <tr><td><strong>Sat</strong></td><td>Product spotlight</td><td>Feed photo</td><td>Auto cross-post</td><td>3 pins</td><td>Promo/offer</td></tr>
+            <tr><td><strong>Sun</strong></td><td>—</td><td>Story only</td><td>Group post</td><td>3 pins</td><td>Week recap</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TIMELINE ── -->
+<section id="timeline">
+  <div class="container">
+    <p class="section-label">Execution</p>
+    <h2 class="section-title">3-Month Rollout Timeline</h2>
+    <p class="section-sub">Phased approach — build momentum before spending on ads.</p>
+
+    <div class="timeline">
+
+      <div class="tl-item">
+        <div class="tl-dot">1</div>
+        <div class="tl-content">
+          <h3>Phase 1 — Quick Wins</h3>
+          <div class="weeks">Week 1–2 · Zero budget needed</div>
+          <ul class="tl-tasks">
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Create TikTok Business account — upload 3 existing Reels immediately</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Create Pinterest Business account — claim website URL</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Set up Meta Business Suite — connect Facebook Page to Instagram</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Add GA4 Measurement ID to .env.local (already wired in code)</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Add Meta Pixel ID to .env.local (already wired in code)</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Add TikTok Pixel ID to .env.local (already wired in code)</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Set up Mailchimp free account — create welcome email sequence</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Create a promo code "WELCOME10" in admin panel for email popup</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Schedule 30 pins on Pinterest using free Tailwind trial</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Create Facebook Group "Beauty Bee Girls Pakistan"</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot phase2">2</div>
+        <div class="tl-content">
+          <h3>Phase 2 — Build Momentum</h3>
+          <div class="weeks">Week 3–6 · Start building owned audience</div>
+          <ul class="tl-tasks">
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Create YouTube channel — upload first 5 Shorts (repurpose TikToks)</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Claim Google Business Profile at business.google.com</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>DM 20 nano influencers (5k–30k followers) for product exchange collab</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Start sending weekly email newsletter (use Mailchimp templates)</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Ask every order customer for a Google review (add to order confirmation)</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Install Meta Pixel on website + test events in Meta Events Manager</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Set up Facebook & Instagram Shop — sync your products</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Post first long-form YouTube video (5–10 min tutorial)</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot phase3">3</div>
+        <div class="tl-content">
+          <h3>Phase 3 — Amplification</h3>
+          <div class="weeks">Month 2–3 · Add paid fuel to organic fire</div>
+          <ul class="tl-tasks">
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Launch first Meta Ad — Rs. 1,500/day boosting best organic post</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Launch TikTok Spark Ad on your top-performing TikTok video</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Create retargeting audience — website visitors who didn't purchase</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Run first Facebook Group giveaway (tag 2 friends to enter)</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Analyse GA4 — which platform drives most orders (not just visits)</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Double down budget on best-performing platform</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Publish first blog post on website for SEO</span></li>
+            <li><div class="check" onclick="this.parentElement.classList.toggle('done')"></div><span>Influencer content live — repost UGC across all channels</span></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── PIXELS SETUP ── -->
+<section id="pixels">
+  <div class="container">
+    <p class="section-label">Technical Setup</p>
+    <h2 class="section-title">How to Get Your Pixel IDs</h2>
+    <p class="section-sub">The code is already in your website. You just need to fill in 3 values in your .env.local file.</p>
+
+    <div class="tip-box">
+      <strong>✅ Already Done For You</strong>
+      <p>GA4, Meta Pixel, and TikTok Pixel scripts are already embedded in your website layout. Just paste your IDs into <code style="background:white;padding:2px 6px;border-radius:4px;font-family:monospace">.env.local</code> and redeploy.</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="tag">Step 1</div>
+        <h3>🔍 Google Analytics 4</h3>
+        <ol style="font-size:0.85rem;color:var(--mid);padding-left:1.2rem;line-height:2">
+          <li>Go to <strong>analytics.google.com</strong></li>
+          <li>Create account → Add property</li>
+          <li>Choose Web → Enter your website URL</li>
+          <li>Copy your <strong>Measurement ID</strong> (G-XXXXXXX)</li>
+          <li>Paste into .env.local as <code>NEXT_PUBLIC_GA_MEASUREMENT_ID</code></li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="tag blue">Step 2</div>
+        <h3>📘 Meta (Facebook) Pixel</h3>
+        <ol style="font-size:0.85rem;color:var(--mid);padding-left:1.2rem;line-height:2">
+          <li>Go to <strong>business.facebook.com</strong></li>
+          <li>Events Manager → Connect Data Source</li>
+          <li>Choose Web → Name your pixel</li>
+          <li>Copy your <strong>Pixel ID</strong> (16-digit number)</li>
+          <li>Paste into .env.local as <code>NEXT_PUBLIC_FB_PIXEL_ID</code></li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="tag orange">Step 3</div>
+        <h3>🎵 TikTok Pixel</h3>
+        <ol style="font-size:0.85rem;color:var(--mid);padding-left:1.2rem;line-height:2">
+          <li>Go to <strong>ads.tiktok.com</strong></li>
+          <li>Assets → Events → Web Events</li>
+          <li>Manage → Set Up Web Events → Manual</li>
+          <li>Copy your <strong>Pixel ID</strong></li>
+          <li>Paste into .env.local as <code>NEXT_PUBLIC_TIKTOK_PIXEL_ID</code></li>
+        </ol>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;background:var(--dark);border-radius:16px;padding:1.5rem;color:white;">
+      <p style="font-size:0.75rem;color:#888;margin-bottom:0.75rem;font-family:monospace;letter-spacing:0.1em">YOUR .env.local — replace X values with real IDs</p>
+      <pre style="font-family:monospace;font-size:0.85rem;line-height:2;color:#E8E8E8">NEXT_PUBLIC_GA_MEASUREMENT_ID=<span style="color:#F7B731">G-XXXXXXXXXX</span>
+NEXT_PUBLIC_FB_PIXEL_ID=<span style="color:#45C7F0">XXXXXXXXXXXXXXXXXX</span>
+NEXT_PUBLIC_TIKTOK_PIXEL_ID=<span style="color:#FF4D4D">XXXXXXXXXXXXXXXXXX</span></pre>
+      <p style="font-size:0.8rem;color:#888;margin-top:0.75rem">After editing .env.local → run <code style="background:#333;padding:2px 6px;border-radius:4px">npm run build</code> or redeploy to Vercel.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── KPIs ── -->
+<section id="kpis">
+  <div class="container">
+    <p class="section-label">Measurement</p>
+    <h2 class="section-title">KPIs to Track Monthly</h2>
+    <p class="section-sub">Measure what matters. Review these numbers every month and double down on what's working.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Where to Find</th>
+          <th>Month 1 Target</th>
+          <th>Month 3 Target</th>
+          <th>Why It Matters</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Website Sessions</strong></td>
+          <td>Google Analytics 4</td>
+          <td>500+/month</td>
+          <td>2,000+/month</td>
+          <td>Overall reach indicator</td>
+        </tr>
+        <tr>
+          <td><strong>Traffic by Source</strong></td>
+          <td>GA4 → Acquisition</td>
+          <td>3+ sources</td>
+          <td>5+ sources</td>
+          <td>Diversification health check</td>
+        </tr>
+        <tr>
+          <td><strong>Email Subscribers</strong></td>
+          <td>Mailchimp / Firestore</td>
+          <td>100 subscribers</td>
+          <td>500 subscribers</td>
+          <td>Owned audience growth</td>
+        </tr>
+        <tr>
+          <td><strong>Email Open Rate</strong></td>
+          <td>Mailchimp Analytics</td>
+          <td>30%+</td>
+          <td>35%+</td>
+          <td>Audience quality & relevance</td>
+        </tr>
+        <tr>
+          <td><strong>TikTok Followers</strong></td>
+          <td>TikTok Analytics</td>
+          <td>500+</td>
+          <td>3,000+</td>
+          <td>New audience reach</td>
+        </tr>
+        <tr>
+          <td><strong>TikTok Video Views</strong></td>
+          <td>TikTok Analytics</td>
+          <td>10,000+/video</td>
+          <td>50,000+/video</td>
+          <td>Content performance</td>
+        </tr>
+        <tr>
+          <td><strong>Pinterest Impressions</strong></td>
+          <td>Pinterest Analytics</td>
+          <td>5,000/month</td>
+          <td>30,000/month</td>
+          <td>Discovery & SEO value</td>
+        </tr>
+        <tr>
+          <td><strong>Facebook Group Members</strong></td>
+          <td>Facebook Group Insights</td>
+          <td>100 members</td>
+          <td>500 members</td>
+          <td>Community loyalty</td>
+        </tr>
+        <tr>
+          <td><strong>Orders from New Channels</strong></td>
+          <td>GA4 → Conversions</td>
+          <td>10% of orders</td>
+          <td>35% of orders</td>
+          <td>The actual goal — revenue diversification</td>
+        </tr>
+        <tr>
+          <td><strong>Ad ROAS</strong></td>
+          <td>Meta Ads Manager / TikTok Ads</td>
+          <td>N/A (Month 3)</td>
+          <td>3x minimum</td>
+          <td>Rs. 3 revenue per Rs. 1 ad spend</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── CHECKLIST ── -->
+<section id="checklist">
+  <div class="container">
+    <p class="section-label">Action Plan</p>
+    <h2 class="section-title">Your 30-Day Checklist</h2>
+    <p class="section-sub">Click each item as you complete it. Start with the top — these have the biggest impact fastest.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-bottom:1rem">🚀 Week 1 — Set Up</h3>
+        <ul class="checklist">
+          <li><input type="checkbox" id="c1"><label for="c1">Add GA4 ID to .env.local → redeploy</label><span class="week">Day 1</span></li>
+          <li><input type="checkbox" id="c2"><label for="c2">Add Meta Pixel ID to .env.local</label><span class="week">Day 1</span></li>
+          <li><input type="checkbox" id="c3"><label for="c3">Add TikTok Pixel ID to .env.local</label><span class="week">Day 1</span></li>
+          <li><input type="checkbox" id="c4"><label for="c4">Create TikTok Business account</label><span class="week">Day 1</span></li>
+          <li><input type="checkbox" id="c5"><label for="c5">Upload 3 best-performing Reels to TikTok</label><span class="week">Day 2</span></li>
+          <li><input type="checkbox" id="c6"><label for="c6">Create Pinterest Business + claim website</label><span class="week">Day 2</span></li>
+          <li><input type="checkbox" id="c7"><label for="c7">Set up Meta Business Suite cross-posting</label><span class="week">Day 3</span></li>
+          <li><input type="checkbox" id="c8"><label for="c8">Create Mailchimp account + welcome email</label><span class="week">Day 3</span></li>
+          <li><input type="checkbox" id="c9"><label for="c9">Create promo code WELCOME10 in admin</label><span class="week">Day 3</span></li>
+          <li><input type="checkbox" id="c10"><label for="c10">Create Facebook Group for community</label><span class="week">Day 4</span></li>
+          <li><input type="checkbox" id="c11"><label for="c11">Schedule 30 Pinterest pins (use Tailwind)</label><span class="week">Day 5</span></li>
+          <li><input type="checkbox" id="c12"><label for="c12">Post TikTok every day this week (7 videos)</label><span class="week">Week 1</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:1rem">📈 Week 2–4 — Grow</h3>
+        <ul class="checklist">
+          <li><input type="checkbox" id="c13"><label for="c13">Create YouTube channel — upload 5 Shorts</label><span class="week">Week 2</span></li>
+          <li><input type="checkbox" id="c14"><label for="c14">Claim Google Business Profile</label><span class="week">Week 2</span></li>
+          <li><input type="checkbox" id="c15"><label for="c15">DM 20 nano influencers for collab</label><span class="week">Week 2</span></li>
+          <li><input type="checkbox" id="c16"><label for="c16">Send first email newsletter to subscribers</label><span class="week">Week 2</span></li>
+          <li><input type="checkbox" id="c17"><label for="c17">Set up Facebook & Instagram Shop</label><span class="week">Week 3</span></li>
+          <li><input type="checkbox" id="c18"><label for="c18">Add Google review request to order emails</label><span class="week">Week 3</span></li>
+          <li><input type="checkbox" id="c19"><label for="c19">Run Facebook Group giveaway</label><span class="week">Week 3</span></li>
+          <li><input type="checkbox" id="c20"><label for="c20">Upload first long YouTube tutorial video</label><span class="week">Week 4</span></li>
+          <li><input type="checkbox" id="c21"><label for="c21">Verify pixels working in Events Manager</label><span class="week">Week 4</span></li>
+          <li><input type="checkbox" id="c22"><label for="c22">Review GA4 — which channel drives most orders</label><span class="week">Week 4</span></li>
+          <li><input type="checkbox" id="c23"><label for="c23">Launch first Rs. 1,500/day Meta ad</label><span class="week">Week 4</span></li>
+          <li><input type="checkbox" id="c24"><label for="c24">Launch first TikTok Spark Ad</label><span class="week">Week 4</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Beauty Bee Marketing Plan · Generated May 2026 · beautybee.pk</p>
+  <p style="margin-top:0.5rem;font-size:0.75rem">Check off tasks as you go. Review KPIs monthly. Double down on what works.</p>
+</footer>
+
+<script>
+  // Persist checkboxes
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    const key = 'bb_check_' + cb.id;
+    if (localStorage.getItem(key) === '1') cb.checked = true;
+    cb.addEventListener('change', () => localStorage.setItem(key, cb.checked ? '1' : '0'));
+  });
+
+  // Active nav link
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav a');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3 });
+  sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
