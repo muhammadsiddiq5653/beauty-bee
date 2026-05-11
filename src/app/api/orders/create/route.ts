@@ -165,14 +165,15 @@ export async function POST(req: NextRequest) {
       if (serverPrice === undefined) {
         return NextResponse.json({ error: `Unknown product: ${item.productId}` }, { status: 400 });
       }
-      validatedItems.push({
+      const validatedItem: OrderItem = {
         productId: item.productId,
         isBundle: item.isBundle ?? false,
         name: item.name,
         qty: Number(item.qty),
         unitPrice: serverPrice,
-        shade: item.shade,
-      });
+      };
+      if (item.shade !== undefined) validatedItem.shade = item.shade;
+      validatedItems.push(validatedItem);
     }
 
     const subtotal = validatedItems.reduce((s, i) => s + i.qty * i.unitPrice, 0);

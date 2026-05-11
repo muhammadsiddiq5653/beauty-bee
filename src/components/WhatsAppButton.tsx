@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER ?? "923001234567";
+const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "923080014581";
 const WA_MESSAGE = "Hi Beauty Bee! I'd like to know more about your products 🌸";
 
 export default function WhatsAppButton() {
