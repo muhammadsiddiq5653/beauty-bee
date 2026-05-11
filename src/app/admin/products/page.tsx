@@ -39,6 +39,7 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
     oldPrice: initial?.oldPrice ?? initial?.price ?? 0,
   });
   const [shadeInput, setShadeInput] = useState({ name: "", hex: "#e91e8c" });
+  const [shadeUploading, setShadeUploading] = useState<number | null>(null);
   const [media, setMedia] = useState<MediaItem[]>(initial?.media ?? (initial?.imageUrl ? [{ type: "image" as const, url: initial.imageUrl }] : []));
 
   function addShade() {
@@ -49,6 +50,24 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
 
   function removeShade(i: number) {
     setForm(f => ({ ...f, shades: f.shades?.filter((_, idx) => idx !== i) }));
+  }
+
+  async function uploadShadeImage(index: number, file: File) {
+    setShadeUploading(index);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "beauty-bee/shades");
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      setForm(f => ({
+        ...f,
+        shades: f.shades?.map((s, i) => i === index ? { ...s, imageUrl: data.url } : s),
+      }));
+    } finally {
+      setShadeUploading(null);
+    }
   }
 
   function submit() {
@@ -221,12 +240,27 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
       <div>
         <label className="text-xs font-semibold text-gray-500 mb-2 block">Shades / Variants (optional)</label>
         {form.shades && form.shades.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="space-y-2 mb-3">
             {form.shades.map((s, i) => (
-              <div key={i} className="flex items-center gap-1.5 bg-pink-50 rounded-full px-2.5 py-1 text-xs">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.hex }} />
-                {s.name}
-                <button type="button" onClick={() => removeShade(i)} className="text-gray-400 hover:text-red-500 ml-0.5"><X size={10} /></button>
+              <div key={i} className="flex items-center gap-2 bg-pink-50 rounded-xl px-3 py-2">
+                <div className="w-5 h-5 rounded-full border border-white shadow flex-shrink-0" style={{ backgroundColor: s.hex }} />
+                <span className="text-xs font-semibold flex-1 text-gray-700">{s.name}</span>
+                {/* Shade image */}
+                <label className="cursor-pointer flex-shrink-0">
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadShadeImage(i, f); e.target.value = ""; }} />
+                  {shadeUploading === i ? (
+                    <span className="text-[10px] text-[#e91e8c] font-semibold">Uploading…</span>
+                  ) : s.imageUrl ? (
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-[#e91e8c]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 border border-dashed border-gray-300 rounded-lg px-2 py-1 hover:border-[#e91e8c] hover:text-[#e91e8c] transition-colors">+ photo</span>
+                  )}
+                </label>
+                <button type="button" onClick={() => removeShade(i)} className="text-gray-400 hover:text-red-500 flex-shrink-0"><X size={14} /></button>
               </div>
             ))}
           </div>

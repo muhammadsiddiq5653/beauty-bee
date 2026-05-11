@@ -2,6 +2,7 @@
 export interface Shade {
   name: string;
   hex?: string;
+  imageUrl?: string;
 }
 
 export interface MediaItem {

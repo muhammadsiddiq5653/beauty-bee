@@ -101,6 +101,8 @@ export default function ProductDetailPage() {
               fallbackImageUrl={product.imageUrl}
               fallbackEmoji={product.emoji}
               alt={product.name}
+              shades={product.shades}
+              selectedShade={selectedShade}
             />
             {savingsPct > 0 && (
               <span className="absolute top-4 left-4 bg-[#9B2B47] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
