@@ -11,8 +11,6 @@ import {
   getBundles, saveBundle, deleteBundle,
 } from "@/lib/firestore";
 import { DEFAULT_PRODUCTS, DEFAULT_BUNDLES } from "@/lib/catalogue";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { Product, Bundle } from "@/types";
 
 const CATEGORIES = ["Colour", "Skincare", "Body", "Hair", "Other"];
@@ -48,20 +46,21 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
   async function handleImageUpload(file: File) {
     if (!file.type.startsWith("image/")) return;
     setUploading(true);
-    setUploadProgress(0);
-    const path = `products/${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
-    const storageRef = ref(storage, path);
-    const task = uploadBytesResumable(storageRef, file);
-    task.on(
-      "state_changed",
-      snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
-      () => setUploading(false),
-      async () => {
-        const url = await getDownloadURL(task.snapshot.ref);
-        setForm(f => ({ ...f, imageUrl: url }));
-        setUploading(false);
-      }
-    );
+    setUploadProgress(10);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "beauty-bee/products");
+      setUploadProgress(40);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      setUploadProgress(90);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      setForm(f => ({ ...f, imageUrl: data.url }));
+    } finally {
+      setUploadProgress(100);
+      setUploading(false);
+    }
   }
 
   function addShade() {
@@ -344,20 +343,21 @@ function BundleForm({ initial, onSave, onCancel, saving }: {
   async function handleImageUpload(file: File) {
     if (!file.type.startsWith("image/")) return;
     setUploading(true);
-    setUploadProgress(0);
-    const path = `bundles/${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
-    const storageRef = ref(storage, path);
-    const task = uploadBytesResumable(storageRef, file);
-    task.on(
-      "state_changed",
-      snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
-      () => setUploading(false),
-      async () => {
-        const url = await getDownloadURL(task.snapshot.ref);
-        setForm(f => ({ ...f, imageUrl: url }));
-        setUploading(false);
-      }
-    );
+    setUploadProgress(10);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "beauty-bee/bundles");
+      setUploadProgress(40);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      setUploadProgress(90);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      setForm(f => ({ ...f, imageUrl: data.url }));
+    } finally {
+      setUploadProgress(100);
+      setUploading(false);
+    }
   }
 
   function submit() {

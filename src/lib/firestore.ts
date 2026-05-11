@@ -125,11 +125,11 @@ export async function saveBundle(bundle: Omit<Bundle, "id"> & { id?: string }): 
   const now = new Date().toISOString();
   if (bundle.id) {
     const { id, ...data } = bundle;
-    await updateDoc(doc(db, "bundles", id), { ...data });
+    await updateDoc(doc(db, "bundles", id), stripUndefined({ ...data }));
     return id;
   } else {
     const { id: _id, ...data } = bundle;
-    const ref = await addDoc(collection(db, "bundles"), { ...data, createdAt: now });
+    const ref = await addDoc(collection(db, "bundles"), stripUndefined({ ...data, createdAt: now }));
     return ref.id;
   }
 }
