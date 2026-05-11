@@ -189,25 +189,6 @@ export default function AboutPage() {
           </div>
         </RevealSection>
 
-        {/* Team */}
-        <RevealSection className="mt-12">
-          <h2 className="font-black text-[#8b0057] text-xl text-center mb-6">Meet the Team 💕</h2>
-          <div className="space-y-3">
-            {TEAM.map((t, i) => (
-              <RevealSection key={t.name} delay={i * 80}
-                className="bg-white rounded-2xl p-4 flex gap-4 shadow-sm border border-pink-50">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center text-2xl flex-shrink-0 shadow-inner">
-                  {t.emoji}
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#8b0057] text-sm">{t.name}</h3>
-                  <p className="text-[11px] text-[#e91e8c] font-semibold">{t.role}</p>
-                  <p className="text-[11px] text-gray-500 mt-1 leading-snug">{t.desc}</p>
-                </div>
-              </RevealSection>
-            ))}
-          </div>
-        </RevealSection>
 
         {/* Ingredients promise */}
         <RevealSection className="mt-10 bg-gradient-to-br from-green-50 to-emerald-50 rounded-3xl p-6 border border-green-100">
