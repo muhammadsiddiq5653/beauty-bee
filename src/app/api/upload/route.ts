@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -17,13 +18,7 @@ export async function POST(req: NextRequest) {
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
-
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(apiSecret);
-  const messageData = encoder.encode(paramsToSign);
-  const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signatureBuffer = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
-  const signature = Array.from(new Uint8Array(signatureBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+  const signature = createHash("sha1").update(paramsToSign + apiSecret).digest("hex");
 
   const upload = new FormData();
   upload.append("file", file);
