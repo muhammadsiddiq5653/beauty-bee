@@ -19,6 +19,7 @@ interface PromoCode {
   usedCount?: number;
   active?: boolean;
   expiresAt?: string;
+  applicableProductIds?: string[];
 }
 
 async function getCodesFromFirestore(): Promise<PromoCode[] | null> {
@@ -48,7 +49,11 @@ function getDefaultCodes(): PromoCode[] {
 
 export async function POST(req: NextRequest) {
   try {
-    const { code, subtotal } = await req.json() as { code: string; subtotal: number };
+    const { code, subtotal, items } = await req.json() as {
+      code: string;
+      subtotal: number;
+      items?: { productId: string; qty: number; unitPrice: number }[];
+    };
     if (!code || typeof code !== "string") {
       return NextResponse.json({ ok: false, error: "Please enter a promo code." }, { status: 400 });
     }
@@ -79,18 +84,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "This promo code has reached its usage limit." }, { status: 400 });
     }
 
-    // Check minimum order
-    if (promo.minOrder && subtotal < promo.minOrder) {
+    // Compute eligible subtotal (restricted to specific products if set)
+    const restricted = promo.applicableProductIds && promo.applicableProductIds.length > 0;
+    const eligibleSubtotal = restricted && items
+      ? items
+          .filter(i => promo.applicableProductIds!.includes(i.productId))
+          .reduce((sum, i) => sum + i.unitPrice * i.qty, 0)
+      : subtotal;
+
+    if (restricted && eligibleSubtotal === 0) {
       return NextResponse.json({
         ok: false,
-        error: `This code requires a minimum order of Rs. ${promo.minOrder.toLocaleString()}.`,
+        error: "This promo code is not applicable to any items in your cart.",
+      }, { status: 400 });
+    }
+
+    // Check minimum order
+    if (promo.minOrder && eligibleSubtotal < promo.minOrder) {
+      return NextResponse.json({
+        ok: false,
+        error: `This code requires a minimum order of Rs. ${promo.minOrder.toLocaleString()}${restricted ? " in eligible products" : ""}.`,
       }, { status: 400 });
     }
 
     const discount =
       promo.type === "percent"
-        ? Math.round((subtotal * promo.value) / 100)
-        : Math.min(promo.value, subtotal);
+        ? Math.round((eligibleSubtotal * promo.value) / 100)
+        : Math.min(promo.value, eligibleSubtotal);
 
     const label = promo.label ?? (promo.type === "percent" ? `${promo.value}% off` : `Rs. ${promo.value} off`);
 

@@ -22,6 +22,12 @@ interface PromoCode {
   label?: string;      // friendly name shown to customer e.g. "10% off"
   expiresAt?: string;  // ISO date string
   createdAt?: string;
+  applicableProductIds?: string[];  // empty = applies to all products
+}
+
+interface SimpleProduct {
+  id: string;
+  name: string;
 }
 
 const DEFAULT_CODES: PromoCode[] = [
@@ -40,7 +46,20 @@ const EMPTY_FORM: Omit<PromoCode, "id" | "usedCount" | "createdAt"> = {
   active: true,
   label: "",
   expiresAt: "",
+  applicableProductIds: [],
 };
+
+async function loadProducts(): Promise<SimpleProduct[]> {
+  try {
+    const snap = await getDocs(collection(db, "products"));
+    return snap.docs
+      .map(d => ({ id: d.id, ...(d.data() as { name: string; active?: boolean }) }))
+      .filter(p => p.active !== false)
+      .map(p => ({ id: p.id, name: p.name }));
+  } catch {
+    return [];
+  }
+}
 
 async function loadCodes(): Promise<PromoCode[]> {
   const snap = await getDocs(collection(db, "promoCodes"));
@@ -76,6 +95,7 @@ function CodeBadge({ type, value }: { type: "percent" | "fixed"; value: number }
 
 export default function PromosPage() {
   const [codes, setCodes] = useState<PromoCode[]>([]);
+  const [products, setProducts] = useState<SimpleProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -90,7 +110,9 @@ export default function PromosPage() {
     setLoading(true);
     setError("");
     try {
-      setCodes(await loadCodes());
+      const [fetchedCodes, fetchedProducts] = await Promise.all([loadCodes(), loadProducts()]);
+      setCodes(fetchedCodes);
+      setProducts(fetchedProducts);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load promo codes");
     } finally {
@@ -122,6 +144,7 @@ export default function PromosPage() {
       active: c.active,
       label: c.label ?? "",
       expiresAt: c.expiresAt ?? "",
+      applicableProductIds: c.applicableProductIds ?? [],
     });
     setEditId(c.id);
     setShowForm(true);
@@ -152,6 +175,7 @@ export default function PromosPage() {
         label: form.label || (form.type === "percent" ? `${form.value}% off` : `Rs. ${form.value} off`),
         expiresAt: form.expiresAt || undefined,
         createdAt: existing?.createdAt ?? new Date().toISOString(),
+        applicableProductIds: form.applicableProductIds?.length ? form.applicableProductIds : [],
       };
 
       // If editing and code changed, remove old doc
@@ -345,6 +369,38 @@ export default function PromosPage() {
               />
             </div>
 
+            {/* Applicable Products */}
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold text-gray-600 mb-1.5">
+                Applicable Products <span className="text-gray-400 font-normal">(leave empty to apply to all)</span>
+              </label>
+              {products.length === 0 ? (
+                <p className="text-xs text-gray-400 italic">No products found</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border-2 border-gray-100 rounded-xl p-3">
+                  {products.map(p => {
+                    const checked = (form.applicableProductIds ?? []).includes(p.id);
+                    return (
+                      <label key={p.id} className={`flex items-center gap-2 text-xs cursor-pointer rounded-lg px-2 py-1.5 transition-colors ${checked ? "bg-pink-50 text-[#8b0057] font-semibold" : "text-gray-600 hover:bg-gray-50"}`}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => setForm(f => ({
+                            ...f,
+                            applicableProductIds: checked
+                              ? (f.applicableProductIds ?? []).filter(id => id !== p.id)
+                              : [...(f.applicableProductIds ?? []), p.id],
+                          }))}
+                          className="accent-[#e91e8c]"
+                        />
+                        {p.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Active */}
             <div className="flex items-center gap-3 pt-2">
               <label className="text-xs font-bold text-gray-600">Active</label>
@@ -406,7 +462,7 @@ export default function PromosPage() {
         <div className="mb-6">
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Active Codes ({activeCodes.length})</h3>
           <div className="space-y-2">
-            {activeCodes.map(c => <CodeRow key={c.id} code={c} onEdit={() => openEdit(c)} onToggle={() => handleToggle(c)} onDelete={() => setConfirmDelete(c.id)} onCopy={() => copyCode(c.code)} copied={copied === c.code} confirmDelete={confirmDelete === c.id} onConfirmDelete={() => handleDelete(c.id)} onCancelDelete={() => setConfirmDelete(null)} />)}
+            {activeCodes.map(c => <CodeRow key={c.id} code={c} products={products} onEdit={() => openEdit(c)} onToggle={() => handleToggle(c)} onDelete={() => setConfirmDelete(c.id)} onCopy={() => copyCode(c.code)} copied={copied === c.code} confirmDelete={confirmDelete === c.id} onConfirmDelete={() => handleDelete(c.id)} onCancelDelete={() => setConfirmDelete(null)} />)}
           </div>
         </div>
       )}
@@ -416,7 +472,7 @@ export default function PromosPage() {
         <div>
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Inactive Codes ({inactiveCodes.length})</h3>
           <div className="space-y-2">
-            {inactiveCodes.map(c => <CodeRow key={c.id} code={c} onEdit={() => openEdit(c)} onToggle={() => handleToggle(c)} onDelete={() => setConfirmDelete(c.id)} onCopy={() => copyCode(c.code)} copied={copied === c.code} confirmDelete={confirmDelete === c.id} onConfirmDelete={() => handleDelete(c.id)} onCancelDelete={() => setConfirmDelete(null)} />)}
+            {inactiveCodes.map(c => <CodeRow key={c.id} code={c} products={products} onEdit={() => openEdit(c)} onToggle={() => handleToggle(c)} onDelete={() => setConfirmDelete(c.id)} onCopy={() => copyCode(c.code)} copied={copied === c.code} confirmDelete={confirmDelete === c.id} onConfirmDelete={() => handleDelete(c.id)} onCancelDelete={() => setConfirmDelete(null)} />)}
           </div>
         </div>
       )}
@@ -425,9 +481,10 @@ export default function PromosPage() {
 }
 
 function CodeRow({
-  code, onEdit, onToggle, onDelete, onCopy, copied, confirmDelete, onConfirmDelete, onCancelDelete
+  code, products, onEdit, onToggle, onDelete, onCopy, copied, confirmDelete, onConfirmDelete, onCancelDelete
 }: {
   code: PromoCode;
+  products: SimpleProduct[];
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
@@ -458,6 +515,15 @@ function CodeRow({
               <span>{code.usedCount} uses{code.maxUses ? ` / ${code.maxUses} max` : ""}</span>
               {code.expiresAt && <span>Expires {new Date(code.expiresAt).toLocaleDateString("en-PK")}</span>}
             </div>
+            {code.applicableProductIds && code.applicableProductIds.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                <span className="text-[10px] text-purple-500 font-bold">Only for:</span>
+                {code.applicableProductIds.map(pid => {
+                  const name = products.find(p => p.id === pid)?.name ?? pid;
+                  return <span key={pid} className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-medium">{name}</span>;
+                })}
+              </div>
+            )}
             {usagePct !== null && (
               <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden w-32">
                 <div className={`h-full rounded-full transition-all ${usagePct >= 90 ? "bg-red-400" : usagePct >= 60 ? "bg-amber-400" : "bg-green-400"}`}

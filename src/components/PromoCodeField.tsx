@@ -11,13 +11,20 @@ interface PromoResult {
   value: number;
 }
 
+interface CartLineItem {
+  productId: string;
+  qty: number;
+  unitPrice: number;
+}
+
 interface Props {
   subtotal: number;
+  items?: CartLineItem[];
   onApply: (promo: PromoResult | null) => void;
   applied: PromoResult | null;
 }
 
-export default function PromoCodeField({ subtotal, onApply, applied }: Props) {
+export default function PromoCodeField({ subtotal, items, onApply, applied }: Props) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -30,7 +37,7 @@ export default function PromoCodeField({ subtotal, onApply, applied }: Props) {
       const res = await fetch("/api/promo/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: input.trim(), subtotal }),
+        body: JSON.stringify({ code: input.trim(), subtotal, items }),
       });
       const data = await res.json();
       if (data.ok) {

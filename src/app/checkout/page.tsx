@@ -262,7 +262,7 @@ export default function CheckoutPage() {
 
             <div className="bg-white rounded-3xl border border-[#EDE8E4] p-5">
               <p className="text-xs font-medium text-[#6B6B6B] mb-3">Have a promo code?</p>
-              <PromoCodeField subtotal={subtotal()} onApply={setPromo} applied={promo} />
+              <PromoCodeField subtotal={subtotal()} items={items} onApply={setPromo} applied={promo} />
             </div>
 
             <div className="bg-[#FAF7F4] border border-[#EDE8E4] rounded-3xl p-4 flex items-start gap-3">
