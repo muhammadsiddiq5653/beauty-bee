@@ -6,17 +6,18 @@ import Image from "next/image";
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Package } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 
-export default function CartDrawer() {
+export default function CartDrawer({ initialDelivery }: { initialDelivery?: number }) {
   const { items, drawerOpen, closeDrawer, removeItem, updateQty, subtotal, itemCount } = useCartStore();
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [delivery, setDelivery] = useState(parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200"));
+  const [delivery, setDelivery] = useState(initialDelivery ?? parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200"));
   const total = subtotal() > 0 ? subtotal() + delivery : 0;
 
   useEffect(() => {
+    if (initialDelivery !== undefined) return;
     fetch("/api/settings").then(r => r.json()).then(s => {
       if (s.deliveryCharge) setDelivery(s.deliveryCharge);
     }).catch(() => {});
-  }, []);
+  }, [initialDelivery]);
 
   // Close on Escape key
   useEffect(() => {

@@ -4,6 +4,7 @@
  * Auth: token header
  */
 import type {
+  OrderStatus,
   PostexCreateOrderPayload,
   PostexCreateOrderResponse,
   PostexCity,
@@ -127,4 +128,28 @@ export function mapPostexStatus(code: string): string {
     "0013": "Delivery Attempted",
   };
   return map[code] ?? code;
+}
+
+export function mapPostexStatusToOrderStatus(code: string, fallbackStatus?: string): OrderStatus {
+  const map: Record<string, OrderStatus> = {
+    "0001": "at_warehouse",
+    "0002": "returned",
+    "0003": "in_transit",
+    "0004": "in_transit",
+    "0005": "delivered",
+    "0006": "returned",
+    "0007": "returned",
+    "0008": "under_review",
+    "0013": "attempted",
+  };
+
+  const normalized = fallbackStatus?.toLowerCase() ?? "";
+  if (normalized.includes("deliver")) return "delivered";
+  if (normalized.includes("return")) return "returned";
+  if (normalized.includes("cancel")) return "cancelled";
+  if (normalized.includes("attempt")) return "attempted";
+  if (normalized.includes("warehouse")) return "at_warehouse";
+  if (normalized.includes("transit") || normalized.includes("route")) return "in_transit";
+
+  return map[code] ?? "booked";
 }

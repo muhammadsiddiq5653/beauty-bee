@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { ImagePlus, Loader2, X, Play, GripVertical } from "lucide-react";
+import { ImagePlus, Loader2, X, Play } from "lucide-react";
+import { auth } from "@/lib/firebase";
 import type { MediaItem } from "@/types";
 
 interface Props {
@@ -28,7 +29,12 @@ export default function MediaUploader({ items, onChange, folder }: Props) {
         const fd = new FormData();
         fd.append("file", file);
         fd.append("folder", folder);
-        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const idToken = await auth.currentUser?.getIdToken();
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: idToken ? { Authorization: `Bearer ${idToken}` } : undefined,
+          body: fd,
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Upload failed");
         newItems.push({ type: data.type === "video" ? "video" : "image", url: data.url });

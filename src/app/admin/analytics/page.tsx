@@ -326,7 +326,6 @@ export default function AnalyticsPage() {
                     }
                     return _label;
                   }}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   formatter={(v: unknown, name: unknown) => [
                     name === "revenue" ? `Rs. ${(v as number).toLocaleString()}` : v as number,
                     name === "revenue" ? "Revenue" : "Orders",
@@ -352,7 +351,6 @@ export default function AnalyticsPage() {
                     <YAxis dataKey="city" type="category" tick={{ fontSize: 11 }}
                       axisLine={false} tickLine={false} width={75}/>
                     <Tooltip contentStyle={TOOLTIP_STYLE}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       formatter={(v: unknown) => [v as number, "Orders"]}/>
                     <Bar dataKey="orders" fill={CHART_PINK} radius={[0, 6, 6, 0]}/>
                   </BarChart>
@@ -376,11 +374,13 @@ export default function AnalyticsPage() {
                         ))}
                       </Pie>
                       <Tooltip contentStyle={TOOLTIP_STYLE}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        formatter={(v: unknown, _n: unknown, props: any) => [
-                          `${v as number} (${pct(v as number, stats.totalOrders)}%)`,
-                          (props?.payload?.name as string) ?? "",
-                        ]}/>
+                        formatter={(v: unknown, _n: unknown, props: unknown) => {
+                          const payload = props as { payload?: { name?: string } };
+                          return [
+                            `${v as number} (${pct(v as number, stats.totalOrders)}%)`,
+                            payload.payload?.name ?? "",
+                          ];
+                        }}/>
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="space-y-1.5 flex-1">
@@ -418,7 +418,6 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false}
                     tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}/>
                   <Tooltip contentStyle={TOOLTIP_STYLE}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     formatter={(v: unknown, name: unknown) => [
                       name === "revenue" ? `Rs. ${(v as number).toLocaleString()}` : v as number,
                       name === "revenue" ? "Revenue" : "Units Sold",

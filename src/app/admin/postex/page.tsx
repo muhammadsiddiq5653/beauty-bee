@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Truck, RefreshCw, Package, CheckCircle, XCircle, AlertCircle,
+  Truck, RefreshCw, Package, CheckCircle, XCircle,
   Download, BookOpen, ChevronDown, ChevronUp, Search, Clock
 } from "lucide-react";
 import { getRecentOrders } from "@/lib/firestore";
+import { auth } from "@/lib/firebase";
 import type { Order as FirestoreOrder } from "@/types";
 
 interface Order {
@@ -79,7 +80,8 @@ export default function PostexPage() {
   function toggleSelect(id: string) {
     setSelected(prev => {
       const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
       return n;
     });
   }
@@ -93,12 +95,17 @@ export default function PostexPage() {
     setSelected(new Set());
   }
 
+  async function adminHeaders(): Promise<HeadersInit> {
+    const idToken = await auth.currentUser?.getIdToken();
+    return { "Content-Type": "application/json", ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) };
+  }
+
   async function bookOrder(orderId: string) {
     setBookingId(orderId);
     try {
       const res = await fetch("/api/postex/book", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await adminHeaders(),
         body: JSON.stringify({ orderId }),
       });
       const data = await res.json();
@@ -120,7 +127,7 @@ export default function PostexPage() {
       try {
         const res = await fetch("/api/postex/book", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await adminHeaders(),
           body: JSON.stringify({ orderId: id }),
         });
         if (res.ok) success++;
@@ -135,7 +142,9 @@ export default function PostexPage() {
   async function refreshStatus(orderId: string, tracking: string) {
     setRefreshingId(orderId);
     try {
-      const res = await fetch(`/api/postex/track?tracking=${encodeURIComponent(tracking)}`);
+      const res = await fetch(`/api/postex/track?tracking=${encodeURIComponent(tracking)}&orderId=${encodeURIComponent(orderId)}`, {
+        headers: await adminHeaders(),
+      });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error ?? "Failed");
       showToast("✅ Status refreshed");
@@ -155,7 +164,9 @@ export default function PostexPage() {
       const order = booked.find(o => o.id === id);
       if (!order?.postexTrackingNumber) continue;
       try {
-        await fetch(`/api/postex/track?tracking=${encodeURIComponent(order.postexTrackingNumber)}`);
+        await fetch(`/api/postex/track?tracking=${encodeURIComponent(order.postexTrackingNumber)}&orderId=${encodeURIComponent(order.id)}`, {
+          headers: await adminHeaders(),
+        });
         success++;
       } catch {}
     }
@@ -163,6 +174,29 @@ export default function PostexPage() {
     setSelected(new Set());
     await loadOrders();
     setLoading(false);
+  }
+
+  async function refreshAllBooked() {
+    setLoading(true);
+    const orders = booked
+      .filter(order => order.postexTrackingNumber)
+      .map(order => ({ orderId: order.id, trackingNumber: order.postexTrackingNumber! }));
+
+    try {
+      const res = await fetch("/api/postex/refresh-all", {
+        method: "POST",
+        headers: await adminHeaders(),
+        body: JSON.stringify({ orders }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Refresh failed");
+      showToast(`Refreshed ${data.refreshed} orders${data.failed?.length ? `, ${data.failed.length} failed` : ""}`);
+      await loadOrders();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : "Refresh failed", "error");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function downloadLoadSheet() {
@@ -180,7 +214,7 @@ export default function PostexPage() {
 
       const res = await fetch("/api/postex/loadsheet", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await adminHeaders(),
         body: JSON.stringify({ trackingNumbers }),
       });
 
@@ -301,6 +335,13 @@ export default function PostexPage() {
                   Load Sheet
                 </button>
               </>
+            )}
+            {tab === "booked" && booked.some(order => order.postexTrackingNumber) && (
+              <button onClick={refreshAllBooked} disabled={loading}
+                className="text-xs px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:opacity-90 disabled:opacity-60 flex items-center gap-1.5">
+                {loading ? <RefreshCw size={12} className="animate-spin"/> : <RefreshCw size={12}/>}
+                Refresh All Booked
+              </button>
             )}
           </div>
         </div>

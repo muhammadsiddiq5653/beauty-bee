@@ -26,7 +26,8 @@ service cloud.firestore {
 
     // Promo codes — public read (checkout validation), admin write
     match /promoCodes/{id} {
-      allow read: if true;
+      allow get: if isAdmin() || resource.data.active != false;
+      allow list: if isAdmin();
       allow write: if isAdmin();
     }
 
@@ -34,6 +35,18 @@ service cloud.firestore {
     match /settings/{id} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /email_subscribers/{id} {
+      allow create: if request.resource.data.email is string
+        && request.resource.data.email.size() <= 120;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /analytics_events/{id} {
+      allow create: if request.resource.data.event is string
+        && request.resource.data.event.size() <= 80;
+      allow read, update, delete: if isAdmin();
     }
   }
 }

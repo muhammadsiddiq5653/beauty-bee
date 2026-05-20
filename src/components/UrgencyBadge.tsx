@@ -18,24 +18,22 @@ function seededRand(seed: string, min: number, max: number): number {
 }
 
 export default function UrgencyBadge({ productId, stock, compact = false }: Props) {
-  const [viewers, setViewers] = useState(0);
-  const [recentOrders, setRecentOrders] = useState(0);
+  const baseViewers = seededRand(productId + "v", 8, 34);
+  const recentOrders = seededRand(productId + "o", 3, 18);
+  const [viewerOffset, setViewerOffset] = useState(0);
 
   useEffect(() => {
-    // Seed realistic numbers based on product ID
-    setViewers(seededRand(productId + "v", 8, 34));
-    setRecentOrders(seededRand(productId + "o", 3, 18));
-
     // Slowly fluctuate viewers every 12s
     const interval = setInterval(() => {
-      setViewers(v => {
+      setViewerOffset(v => {
         const delta = Math.random() > 0.5 ? 1 : -1;
-        return Math.max(5, Math.min(40, v + delta));
+        return Math.max(-5, Math.min(5, v + delta));
       });
     }, 12000);
     return () => clearInterval(interval);
   }, [productId]);
 
+  const viewers = Math.max(5, Math.min(40, baseViewers + viewerOffset));
   const isLowStock = stock !== undefined && stock > 0 && stock <= 5;
   const isOutOfStock = stock !== undefined && stock === 0;
 

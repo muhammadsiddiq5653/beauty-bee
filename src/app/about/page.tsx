@@ -75,12 +75,6 @@ const MILESTONES = [
   { year: "2025", title: "Full eCommerce Store", desc: "Launched our dedicated online store with COD, bundle deals, and nationwide same-week delivery." },
 ];
 
-const TEAM = [
-  { emoji: "👩‍🔬", name: "Aisha Malik", role: "Founder & Formulator", desc: "Biochemistry graduate with a passion for natural skincare and helping women feel confident." },
-  { emoji: "🎨", name: "Sara Ahmed", role: "Brand & Design", desc: "The creative brain behind Beauty Bee's iconic pink aesthetic and packaging." },
-  { emoji: "📦", name: "Usman Khan", role: "Operations & Logistics", desc: "Ensures every order reaches you safely and on time, anywhere in Pakistan." },
-];
-
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#fdf3f9]">
@@ -99,7 +93,10 @@ export default function AboutPage() {
           ))}
         </div>
         <div className="relative z-10 max-w-2xl mx-auto px-4 py-16 text-center">
-          <div className="mb-4 flex justify-center animate-float"><img src="/logo.svg" alt="Beauty Bee" className="h-16 brightness-0 invert" /></div>
+          <div className="mb-4 flex justify-center animate-float">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Beauty Bee" className="h-16 brightness-0 invert" />
+          </div>
           <p className="text-xs font-bold tracking-widest uppercase text-white/60 mb-2 animate-fade-in">Our Story</p>
           <h1 className="text-4xl font-black mb-4 animate-slide-up">About Beauty Bee</h1>
           <p className="text-white/80 max-w-md mx-auto text-sm leading-relaxed animate-fade-in delay-200">
@@ -233,7 +230,10 @@ export default function AboutPage() {
         {/* CTA */}
         <RevealSection className="mt-10 hero-animated rounded-3xl p-8 text-white text-center shadow-lg relative overflow-hidden">
           <div className="relative z-10">
-            <div className="mb-3 flex justify-center animate-float"><img src="/logo.svg" alt="Beauty Bee" className="h-12 brightness-0 invert" /></div>
+            <div className="mb-3 flex justify-center animate-float">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.svg" alt="Beauty Bee" className="h-12 brightness-0 invert" />
+            </div>
             <h3 className="font-black text-xl mb-2">Ready to Glow?</h3>
             <p className="text-white/80 text-sm mb-5">Shop our full range of organic beauty products with COD delivery anywhere in Pakistan.</p>
             <Link href="/shop"

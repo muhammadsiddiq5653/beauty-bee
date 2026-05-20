@@ -9,10 +9,18 @@ import { createOrder, getProducts, getBundles, getStoreSettings } from "@/lib/fi
 import { createPostexOrder } from "@/lib/postex";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import type { Order, OrderItem } from "@/types";
+import type { Bundle, Order, OrderItem, Product } from "@/types";
 
 const DELIVERY_CHARGE_FALLBACK = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL ?? "";
+const MAX_ITEMS_PER_ORDER = 30;
+const MAX_QTY_PER_LINE = 20;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^03\d{9}$/;
+
+function cleanText(value: unknown, maxLength: number): string {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
 
 // ── Email templates ──────────────────────────────────────────────
 
@@ -137,6 +145,12 @@ function customerEmailHtml(order: {
 // ── Route handler ────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const requestStartedAt = Date.now();
+  const timings: Record<string, number> = {};
+  const mark = (name: string, startedAt: number) => {
+    timings[name] = Date.now() - startedAt;
+  };
+
   try {
     const body = await req.json();
     const {
@@ -145,34 +159,57 @@ export async function POST(req: NextRequest) {
       promoCode,
     } = body;
 
-    if (!customerName || !customerPhone || !deliveryAddress || !cityName || !items?.length) {
+    const cleanName = cleanText(customerName, 80);
+    const cleanPhone = cleanText(customerPhone, 20);
+    const cleanEmail = cleanText(customerEmail, 120).toLowerCase();
+    const cleanAddress = cleanText(deliveryAddress, 300);
+    const cleanCity = cleanText(cityName, 80);
+    const cleanNotes = cleanText(transactionNotes, 240);
+
+    if (!cleanName || !cleanPhone || !cleanAddress || !cleanCity || !Array.isArray(items) || !items.length) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+    if (!PHONE_RE.test(cleanPhone)) {
+      return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+    }
+    if (!cleanEmail || !EMAIL_RE.test(cleanEmail)) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+    if (items.length > MAX_ITEMS_PER_ORDER) {
+      return NextResponse.json({ error: "Too many items in one order" }, { status: 400 });
     }
 
     // ── 1. Validate prices server-side ──────────────────────────────
+    const catalogueStartedAt = Date.now();
     const [products, bundles, storeSettings] = await Promise.all([getProducts(), getBundles(), getStoreSettings()]);
+    mark("catalogueMs", catalogueStartedAt);
     const DELIVERY_CHARGE = storeSettings.deliveryCharge ?? DELIVERY_CHARGE_FALLBACK;
-    const priceMap = new Map<string, number>();
-    for (const p of products) priceMap.set(p.id, p.price);
-    for (const b of bundles) priceMap.set(b.id, b.price);
+    const catalogue = new Map<string, Product | Bundle>();
+    for (const p of products) catalogue.set(p.id, p);
+    for (const b of bundles) catalogue.set(b.id, b);
 
     const validatedItems: OrderItem[] = [];
     for (const item of items as Array<{ productId: string; isBundle?: boolean; key?: string; name: string; qty: number; shade?: string }>) {
       if (!item.productId || typeof item.productId !== "string") {
         return NextResponse.json({ error: "Invalid item: missing productId" }, { status: 400 });
       }
-      const serverPrice = priceMap.get(item.productId);
-      if (serverPrice === undefined) {
+      const catalogueItem = catalogue.get(item.productId);
+      if (!catalogueItem || catalogueItem.active === false) {
         return NextResponse.json({ error: `Unknown product: ${item.productId}` }, { status: 400 });
       }
+      const qty = Number(item.qty);
+      if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY_PER_LINE) {
+        return NextResponse.json({ error: "Invalid item quantity" }, { status: 400 });
+      }
+      const shade = cleanText(item.shade, 60);
       const validatedItem: OrderItem = {
         productId: item.productId,
         isBundle: item.isBundle ?? false,
-        name: item.name,
-        qty: Number(item.qty),
-        unitPrice: serverPrice,
+        name: catalogueItem.name,
+        qty,
+        unitPrice: catalogueItem.price,
       };
-      if (item.shade !== undefined) validatedItem.shade = item.shade;
+      if (shade) validatedItem.shade = shade;
       validatedItems.push(validatedItem);
     }
 
@@ -182,7 +219,9 @@ export async function POST(req: NextRequest) {
     let discountAmount = 0;
     let validatedPromoCode = "";
     if (promoCode && typeof promoCode === "string") {
+      const promoStartedAt = Date.now();
       const promoSnap = await getDocs(collection(db, "promoCodes"));
+      mark("promoMs", promoStartedAt);
       const promoCodes = promoSnap.docs.map(d => d.data() as {
         code: string; type: "percent" | "fixed"; value: number;
         active?: boolean; expiresAt?: string; maxUses?: number;
@@ -208,19 +247,54 @@ export async function POST(req: NextRequest) {
     const total = Math.max(0, subtotal + DELIVERY_CHARGE - discountAmount);
     const refNumber = "BB-" + Date.now().toString().slice(-8);
     const pieceCount = validatedItems.reduce((s, i) => s + i.qty, 0);
+    if (pieceCount < 1 || pieceCount > MAX_ITEMS_PER_ORDER * MAX_QTY_PER_LINE) {
+      return NextResponse.json({ error: "Invalid item count" }, { status: 400 });
+    }
     const itemSummary = validatedItems
       .map(i => `${i.name}${i.shade ? ` (${i.shade})` : ""} ×${i.qty}`)
       .join(", ");
 
+    // Book on PostEx immediately. If booking succeeds, tracking is saved in the
+    // initial Firestore create so public checkout does not need update permission.
+    let trackingNumber: string | null = null;
+    let postexError: string | null = null;
+    let postexOrderStatus: string | undefined;
+    let postexOrderDate: string | undefined;
+
+    const postexStartedAt = Date.now();
+    try {
+      const dist = await createPostexOrder({
+        orderRefNumber:    refNumber,
+        invoicePayment:    String(total),
+        orderDetail:       itemSummary,
+        customerName:      cleanName,
+        customerPhone:     cleanPhone,
+        deliveryAddress:   cleanAddress,
+        transactionNotes:  cleanNotes,
+        cityName:          cleanCity,
+        invoiceDivision:   1,
+        items:             pieceCount,
+        pickupAddressCode: process.env.POSTEX_PICKUP_ADDRESS_CODE,
+        orderType:         "Normal",
+      });
+      trackingNumber = dist.trackingNumber;
+      postexOrderStatus = dist.orderStatus;
+      postexOrderDate = dist.orderDate;
+      mark("postexMs", postexStartedAt);
+    } catch (pErr: unknown) {
+      postexError = pErr instanceof Error ? pErr.message : "PostEx booking failed";
+      mark("postexMs", postexStartedAt);
+    }
+
     const orderData: Omit<Order, "id"> = {
       refNumber,
-      status: "pending",
-      customerName,
-      customerPhone,
-      customerEmail: customerEmail ?? "",
-      deliveryAddress,
-      cityName,
-      transactionNotes: transactionNotes ?? "",
+      status: trackingNumber ? "booked" : "pending",
+      customerName: cleanName,
+      customerPhone: cleanPhone,
+      customerEmail: cleanEmail,
+      deliveryAddress: cleanAddress,
+      cityName: cleanCity,
+      transactionNotes: cleanNotes,
       items: validatedItems,
       itemSummary,
       pieceCount,
@@ -232,48 +306,23 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    if (trackingNumber) orderData.postexTrackingNumber = trackingNumber;
+    if (postexOrderStatus) orderData.postexOrderStatus = postexOrderStatus;
+    if (postexOrderDate) orderData.postexOrderDate = postexOrderDate;
 
     // 1. Save to Firestore
+    const firestoreStartedAt = Date.now();
     const orderId = await createOrder(orderData);
-
-    // 2. Auto-book on PostEx
-    let trackingNumber: string | null = null;
-    let postexError: string | null = null;
-
-    try {
-      const dist = await createPostexOrder({
-        orderRefNumber:    refNumber,
-        invoicePayment:    String(total),
-        orderDetail:       itemSummary,
-        customerName,
-        customerPhone,
-        deliveryAddress,
-        transactionNotes:  transactionNotes ?? "",
-        cityName,
-        invoiceDivision:   1,
-        items:             pieceCount,
-        pickupAddressCode: process.env.POSTEX_PICKUP_ADDRESS_CODE,
-        orderType:         "Normal",
-      });
-      trackingNumber = dist.trackingNumber;
-      const { updateOrder } = await import("@/lib/firestore");
-      await updateOrder(orderId, {
-        postexTrackingNumber: dist.trackingNumber,
-        postexOrderStatus:    dist.orderStatus,
-        postexOrderDate:      dist.orderDate,
-        status:               "booked",
-      });
-    } catch (pErr: unknown) {
-      postexError = pErr instanceof Error ? pErr.message : "PostEx booking failed";
-    }
+    mark("firestoreCreateMs", firestoreStartedAt);
 
     // 3. Send emails
     const gmailUser = process.env.GMAIL_USER;
     const gmailPass = process.env.GMAIL_APP_PASSWORD;
 
-    console.log(`[orders/create] ${refNumber} — email config: gmailUser=${gmailUser ? "set" : "MISSING"} gmailPass=${gmailPass ? "set" : "MISSING"} customerEmail=${customerEmail || "not provided"} NOTIFY_EMAIL=${NOTIFY_EMAIL || "MISSING"}`);
+    console.log(`[orders/create] ${refNumber} — email config: gmailUser=${gmailUser ? "set" : "MISSING"} gmailPass=${gmailPass ? "set" : "MISSING"} customerEmail=${cleanEmail || "not provided"} NOTIFY_EMAIL=${NOTIFY_EMAIL || "MISSING"}`);
 
     if (gmailUser && gmailPass) {
+      const emailStartedAt = Date.now();
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: { user: gmailUser, pass: gmailPass },
@@ -288,9 +337,9 @@ export async function POST(req: NextRequest) {
             to: NOTIFY_EMAIL,
             subject: `🐝 New Order ${refNumber} — Rs. ${total.toLocaleString()} — ${customerName}`,
             html: businessEmailHtml({
-              refNumber, trackingNumber, customerName, customerPhone,
-              cityName, deliveryAddress,
-              transactionNotes: transactionNotes ?? "",
+              refNumber, trackingNumber, customerName: cleanName, customerPhone: cleanPhone,
+              cityName: cleanCity, deliveryAddress: cleanAddress,
+              transactionNotes: cleanNotes,
               itemSummary, subtotal, deliveryCharge: DELIVERY_CHARGE, total,
             }),
           }).then(() => console.log(`[orders/create] business email sent to ${NOTIFY_EMAIL}`))
@@ -298,25 +347,35 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      if (customerEmail) {
+      if (cleanEmail) {
         emailPromises.push(
           transporter.sendMail({
             from: `"Beauty Bee" <${gmailUser}>`,
-            to: customerEmail,
+            to: cleanEmail,
             subject: `Your Beauty Bee order is confirmed — ${refNumber}`,
             html: customerEmailHtml({
-              refNumber, trackingNumber, customerName,
+              refNumber, trackingNumber, customerName: cleanName,
               itemSummary, total,
             }),
-          }).then(() => console.log(`[orders/create] customer email sent to ${customerEmail}`))
+          }).then(() => console.log(`[orders/create] customer email sent to ${cleanEmail}`))
             .catch(e => console.error(`[orders/create] customer email FAILED:`, e))
         );
       }
 
       await Promise.allSettled(emailPromises);
+      mark("emailMs", emailStartedAt);
     } else {
       console.warn("[orders/create] email skipped — GMAIL_USER or GMAIL_APP_PASSWORD not set");
     }
+
+    timings.totalMs = Date.now() - requestStartedAt;
+    console.info("[orders/create:timing]", {
+      refNumber,
+      orderId,
+      trackingCreated: Boolean(trackingNumber),
+      postexError,
+      ...timings,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -328,6 +387,11 @@ export async function POST(req: NextRequest) {
       itemSummary,
     });
   } catch (err: unknown) {
+    console.error("[orders/create:error]", {
+      totalMs: Date.now() - requestStartedAt,
+      ...timings,
+      error: err instanceof Error ? err.message : "Unknown error",
+    });
     const msg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
   }

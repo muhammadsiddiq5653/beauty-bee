@@ -9,11 +9,10 @@ import {
   getProducts, saveProduct, deleteProduct,
   getBundles, saveBundle, deleteBundle,
 } from "@/lib/firestore";
+import { auth } from "@/lib/firebase";
 import { DEFAULT_PRODUCTS, DEFAULT_BUNDLES } from "@/lib/catalogue";
 import MediaUploader from "@/components/MediaUploader";
 import type { Product, Bundle, MediaItem } from "@/types";
-
-const CATEGORIES = ["Colour", "Skincare", "Body", "Hair", "Other"];
 
 // ─── Colour Swatch ──────────────────────────────────────────────
 function ColorSwatch({ hex, name }: { hex: string; name: string }) {
@@ -58,7 +57,12 @@ function ProductForm({ initial, onSave, onCancel, saving }: {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("folder", "beauty-bee/shades");
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const idToken = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: idToken ? { Authorization: `Bearer ${idToken}` } : undefined,
+        body: fd,
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
       setForm(f => ({
@@ -607,10 +611,12 @@ export default function ProductsPage() {
               <div key={p.id} className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${!p.active ? "opacity-60" : ""}`}>
                 <div className="flex items-center gap-3 p-4">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#F2EDE8] flex items-center justify-center flex-shrink-0">
-                    {p.imageUrl
-                      ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                      : <span className="text-2xl">{p.emoji}</span>
-                    }
+                    {p.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">{p.emoji}</span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -667,10 +673,12 @@ export default function ProductsPage() {
             <div key={b.id} className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-4 ${!b.active ? "opacity-60" : ""}`}>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-purple-50 flex items-center justify-center flex-shrink-0">
-                  {b.imageUrl
-                    ? <img src={b.imageUrl} alt={b.name} className="w-full h-full object-cover" />
-                    : <span className="text-2xl">{b.emoji}</span>
-                  }
+                  {b.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={b.imageUrl} alt={b.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">{b.emoji}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

@@ -1,5 +1,5 @@
-// Customer homepage — redirects to the shop
-import { redirect } from "next/navigation";
-export default function Home() {
-  redirect("/shop");
-}
+import ShopPage from "./shop/page";
+
+export const revalidate = 300;
+
+export default ShopPage;

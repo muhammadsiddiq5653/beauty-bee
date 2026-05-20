@@ -8,8 +8,8 @@
  */
 import {
   collection, doc, addDoc, updateDoc, setDoc, getDocs, getDoc,
-  query, orderBy, limit, where, Timestamp, onSnapshot,
-  DocumentSnapshot, QuerySnapshot,
+  query, orderBy, limit, where, onSnapshot,
+  QuerySnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Order, Product, Bundle, OrderStatus } from "@/types";
@@ -128,7 +128,8 @@ export async function saveBundle(bundle: Omit<Bundle, "id"> & { id?: string }): 
     await updateDoc(doc(db, "bundles", id), stripUndefined({ ...data }));
     return id;
   } else {
-    const { id: _id, ...data } = bundle;
+    const { id, ...data } = bundle;
+    void id;
     const ref = await addDoc(collection(db, "bundles"), stripUndefined({ ...data, createdAt: now }));
     return ref.id;
   }
@@ -139,22 +140,133 @@ export async function deleteBundle(id: string): Promise<void> {
 }
 
 // ─── Store Settings ────────────────────────────────────────────
+export interface MarketingBanner {
+  id: string;
+  type?: "announcement" | "hero" | "promo" | "trust" | "products" | "bundles" | "ingredients" | "reviews" | "trackLink";
+  placement: "top" | "hero" | "middle" | "bottom";
+  active: boolean;
+  sortOrder?: number;
+  eyebrow?: string;
+  title: string;
+  highlight?: string;
+  body?: string;
+  buttonLabel?: string;
+  href?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  backgroundColor?: string;
+  textColor?: string;
+}
+
 export interface StoreSettings {
   deliveryCharge: number;
   freeDeliveryThreshold: number;  // 0 = disabled
   whatsappNumber: string;
+  banners: MarketingBanner[];
 }
 
-const DEFAULT_SETTINGS: StoreSettings = {
+export const DEFAULT_SETTINGS: StoreSettings = {
   deliveryCharge: parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200"),
   freeDeliveryThreshold: 0,
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "",
+  banners: [
+    {
+      id: "default-top",
+      type: "announcement",
+      placement: "top",
+      active: true,
+      sortOrder: 10,
+      title: "Free delivery on orders above Rs. 1,500",
+    },
+    {
+      id: "default-hero",
+      type: "hero",
+      placement: "hero",
+      active: true,
+      sortOrder: 20,
+      eyebrow: "Pakistan's Favourite Organic Tint",
+      title: "Your Lips.",
+      highlight: "Your Mood.",
+      body: "Lip & Cheek Tint in 6 stunning shades, all-day wear, 100% organic.",
+      buttonLabel: "Shop the Tint",
+      href: "#products",
+    },
+    {
+      id: "default-trust",
+      type: "trust",
+      placement: "middle",
+      active: true,
+      sortOrder: 30,
+      title: "Trust Strip",
+    },
+    {
+      id: "default-products",
+      type: "products",
+      placement: "middle",
+      active: true,
+      sortOrder: 40,
+      eyebrow: "The Collection",
+      title: "Lip & Cheek Tint",
+      body: "One product. Multiple shades. Endless looks.",
+    },
+    {
+      id: "default-bundles",
+      type: "bundles",
+      placement: "middle",
+      active: true,
+      sortOrder: 50,
+      eyebrow: "Save More",
+      title: "Complete Your Look",
+      body: "Bundle deals crafted for the full Beauty Bee experience.",
+    },
+    {
+      id: "default-middle",
+      type: "promo",
+      placement: "middle",
+      active: true,
+      sortOrder: 60,
+      eyebrow: "Nationwide Shipping",
+      title: "Flat Delivery Anywhere in Pakistan",
+      body: "Cash on Delivery · PostEx Tracking · 2-5 Working Days",
+      buttonLabel: "Order Now",
+      href: "#products",
+    },
+    {
+      id: "default-ingredients",
+      type: "ingredients",
+      placement: "middle",
+      active: true,
+      sortOrder: 70,
+      title: "Pure. Honest. Organic.",
+      body: "Formulated without parabens, sulphates, artificial fragrances or harsh chemicals.",
+    },
+    {
+      id: "default-reviews",
+      type: "reviews",
+      placement: "middle",
+      active: true,
+      sortOrder: 80,
+      eyebrow: "Social Proof",
+      title: "What Our Customers Say",
+    },
+    {
+      id: "default-track",
+      type: "trackLink",
+      placement: "bottom",
+      active: true,
+      sortOrder: 90,
+      title: "Already ordered? Track your parcel",
+      href: "/track",
+    },
+  ],
 };
 
 export async function getStoreSettings(): Promise<StoreSettings> {
   const snap = await getDoc(doc(db, "settings", "store"));
   if (!snap.exists()) return { ...DEFAULT_SETTINGS };
-  return { ...DEFAULT_SETTINGS, ...snap.data() } as StoreSettings;
+  const data = snap.data() as Partial<StoreSettings>;
+  const banners = data.banners && data.banners.length > 0 ? data.banners : DEFAULT_SETTINGS.banners;
+  return { ...DEFAULT_SETTINGS, ...data, banners } as StoreSettings;
 }
 
 export async function updateStoreSettings(data: Partial<StoreSettings>): Promise<void> {

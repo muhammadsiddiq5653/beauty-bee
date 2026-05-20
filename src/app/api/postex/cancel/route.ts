@@ -4,22 +4,31 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cancelPostexOrder } from "@/lib/postex";
-import { getOrder, updateOrder } from "@/lib/firestore";
+import { AuthError, requireAdminToken } from "@/lib/adminAuth";
+import { fsGet, fsPatch } from "@/lib/firestoreRest";
 
 export async function POST(req: NextRequest) {
   try {
+    const token = await requireAdminToken(req);
     const { orderId, reason } = await req.json();
-    const order = await getOrder(orderId);
+    if (!orderId || typeof orderId !== "string") {
+      return NextResponse.json({ error: "orderId required" }, { status: 400 });
+    }
+
+    const order = await fsGet("orders", orderId, token);
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (!order.postexTrackingNumber) {
       // Not yet on PostEx — just mark cancelled in Firestore
-      await updateOrder(orderId, { status: "cancelled" });
+      await fsPatch("orders", orderId, { status: "cancelled", updatedAt: new Date().toISOString() }, token);
       return NextResponse.json({ ok: true });
     }
-    await cancelPostexOrder(order.postexTrackingNumber, reason);
-    await updateOrder(orderId, { status: "cancelled" });
+    await cancelPostexOrder(String(order.postexTrackingNumber), typeof reason === "string" ? reason : undefined);
+    await fsPatch("orders", orderId, { status: "cancelled", updatedAt: new Date().toISOString() }, token);
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     const msg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
   }

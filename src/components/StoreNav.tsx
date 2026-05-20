@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ShoppingBag, Package } from "lucide-react";
@@ -7,14 +8,20 @@ import { useCartStore } from "@/store/cart";
 
 export default function StoreNav() {
   const { itemCount, openDrawer } = useCartStore();
+  const [mounted, setMounted] = useState(false);
   const count = itemCount();
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
 
   return (
     <header className="bg-white border-b border-[#EDE8E4] sticky top-0 z-40">
       <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          <Image src="/logo.svg" alt="Beauty Bee" width={110} height={44} priority />
+          <Image src="/logo.svg" alt="Beauty Bee" width={110} height={44} priority unoptimized />
         </Link>
 
         {/* Right actions */}
@@ -35,7 +42,7 @@ export default function StoreNav() {
           >
             <ShoppingBag size={14} />
             Cart
-            {count > 0 && (
+            {mounted && count > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-[#C9A84C] text-white text-[9px] font-bold w-4.5 h-4.5 min-w-[18px] min-h-[18px] rounded-full flex items-center justify-center shadow-sm">
                 {count > 9 ? "9+" : count}
               </span>

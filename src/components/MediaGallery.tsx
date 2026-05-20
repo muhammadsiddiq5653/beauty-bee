@@ -53,6 +53,7 @@ export default function MediaGallery({ media, fallbackEmoji, fallbackImageUrl, a
             src={url}
             alt={selectedShade ?? alt}
             fill
+            sizes="(max-width: 768px) 100vw, 672px"
             className="object-cover transition-opacity duration-500"
           />
           {!selectedShade && shadeImages.length > 1 && (
@@ -83,7 +84,7 @@ export default function MediaGallery({ media, fallbackEmoji, fallbackImageUrl, a
                   "border-transparent opacity-60"
                 }`}
               >
-                <Image src={s.imageUrl!} alt={s.name} fill className="object-cover" />
+                <Image src={s.imageUrl!} alt={s.name} fill sizes="56px" className="object-cover" />
                 <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[8px] text-center py-0.5 truncate px-1">{s.name}</div>
               </div>
             ))}
@@ -127,7 +128,7 @@ export default function MediaGallery({ media, fallbackEmoji, fallbackImageUrl, a
             className="w-full h-full object-cover"
           />
         ) : (
-          <Image key={current.url} src={current.url} alt={alt} fill className="object-cover transition-opacity duration-300" />
+          <Image key={current.url} src={current.url} alt={alt} fill sizes="(max-width: 768px) 100vw, 672px" className="object-cover transition-opacity duration-300" />
         )}
 
         {/* Nav arrows — only for base gallery items */}
@@ -162,7 +163,7 @@ export default function MediaGallery({ media, fallbackEmoji, fallbackImageUrl, a
             <div key={`shade-${i}`}
               className={`relative flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${selectedShade === s.name ? "border-[#9B2B47]" : "border-transparent opacity-60 hover:opacity-100"}`}
             >
-              <Image src={s.imageUrl!} alt={s.name} fill className="object-cover" />
+              <Image src={s.imageUrl!} alt={s.name} fill sizes="56px" className="object-cover" />
               <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[8px] text-center py-0.5 truncate px-1">{s.name}</div>
             </div>
           ))}
@@ -176,7 +177,7 @@ export default function MediaGallery({ media, fallbackEmoji, fallbackImageUrl, a
                   <Play size={18} className="text-white" fill="white" />
                 </div>
               ) : (
-                <Image src={item.url} alt={`${alt} ${i + 1}`} fill className="object-cover" />
+                <Image src={item.url} alt={`${alt} ${i + 1}`} fill sizes="56px" className="object-cover" />
               )}
             </button>
           ))}

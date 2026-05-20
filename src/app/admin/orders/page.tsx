@@ -7,7 +7,8 @@ import {
   ExternalLink, AlertCircle, Download
 } from "lucide-react";
 import { getRecentOrders } from "@/lib/firestore";
-import type { Order, OrderStatus } from "@/types";
+import { auth } from "@/lib/firebase";
+import type { Order } from "@/types";
 
 const STATUS: Record<string, { label: string; bg: string; icon: React.ReactNode }> = {
   pending:      { label: "Pending",      bg: "bg-yellow-100 text-yellow-700 border-yellow-200",  icon: <Clock size={12}/> },
@@ -48,6 +49,11 @@ export default function OrdersPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  async function adminHeaders(): Promise<HeadersInit> {
+    const idToken = await auth.currentUser?.getIdToken();
+    return { "Content-Type": "application/json", ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) };
+  }
+
   const filtered = orders.filter(o => {
     const q = search.toLowerCase();
     const matchSearch = !search ||
@@ -63,7 +69,8 @@ export default function OrdersPage() {
     setBooking(true); setBookResult("");
     try {
       const res = await fetch("/api/postex/book", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: await adminHeaders(),
         body: JSON.stringify({ orderId: order.id }),
       });
       const d = await res.json();
@@ -78,10 +85,13 @@ export default function OrdersPage() {
     finally { setBooking(false); }
   }
 
-  async function refreshStatus(trackingNumber: string) {
+  async function refreshStatus(order: Order) {
+    if (!order.postexTrackingNumber) return;
     setTracking(true); setTrackResult("");
     try {
-      const res = await fetch(`/api/postex/track?tracking=${trackingNumber}`);
+      const res = await fetch(`/api/postex/track?tracking=${encodeURIComponent(order.postexTrackingNumber)}&orderId=${encodeURIComponent(order.id)}`, {
+        headers: await adminHeaders(),
+      });
       const d = await res.json();
       if (d.ok) {
         setTrackResult(`Status: ${d.latestStatus ?? d.status}`);
@@ -98,7 +108,7 @@ export default function OrdersPage() {
     setCancellingId(order.id);
     try {
       await fetch("/api/postex/cancel", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: await adminHeaders(),
         body: JSON.stringify({ orderId: order.id, reason: "Admin cancelled" }),
       });
       load();
@@ -262,7 +272,7 @@ export default function OrdersPage() {
                           <p className="text-sm font-mono text-gray-700">{o.refNumber}</p>
                           {o.postexTrackingNumber && <p className="text-sm font-mono text-blue-600">{o.postexTrackingNumber}</p>}
                           <p className="text-xs text-gray-400">{new Date(o.createdAt).toLocaleString()}</p>
-                          {o.transactionNotes && <p className="text-xs text-gray-600 mt-1 italic">"{o.transactionNotes}"</p>}
+                          {o.transactionNotes && <p className="text-xs text-gray-600 mt-1 italic">&quot;{o.transactionNotes}&quot;</p>}
                         </div>
                       </div>
 
@@ -295,7 +305,7 @@ export default function OrdersPage() {
                           </button>
                         )}
                         {o.postexTrackingNumber && (
-                          <button onClick={() => refreshStatus(o.postexTrackingNumber!)} disabled={tracking}
+                          <button onClick={() => refreshStatus(o)} disabled={tracking}
                             className="flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-60">
                             <RefreshCw size={14} className={tracking ? "animate-spin" : ""}/>
                             {tracking ? "Refreshing..." : "Refresh Status"}

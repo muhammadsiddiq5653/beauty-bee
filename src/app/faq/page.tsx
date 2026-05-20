@@ -295,6 +295,7 @@ export default function FAQPage() {
           </Link>
           <Link href="/about"
             className="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm border border-pink-50 hover:border-pink-200 transition-colors group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="Beauty Bee" className="h-8 w-8 object-contain" />
             <div>
               <p className="font-bold text-[#8b0057] text-xs">About Us</p>

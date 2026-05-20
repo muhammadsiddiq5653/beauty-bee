@@ -7,7 +7,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 interface PromoCode {
   code: string;
@@ -22,11 +22,11 @@ interface PromoCode {
   applicableProductIds?: string[];
 }
 
-async function getCodesFromFirestore(): Promise<PromoCode[] | null> {
+async function getCodeFromFirestore(code: string): Promise<PromoCode | null> {
   try {
-    const snap = await getDocs(collection(db, "promoCodes"));
-    if (snap.empty) return null;
-    return snap.docs.map(d => d.data() as PromoCode);
+    const snap = await getDoc(doc(db, "promoCodes", code));
+    if (!snap.exists()) return null;
+    return snap.data() as PromoCode;
   } catch {
     return null;
   }
@@ -60,14 +60,11 @@ export async function POST(req: NextRequest) {
 
     const normalised = code.trim().toUpperCase();
 
-    // Try Firestore first, then fall back to env/defaults
-    const firestoreCodes = await getCodesFromFirestore();
-    const codes: PromoCode[] = firestoreCodes ?? getDefaultCodes();
-
-    const promo = codes.find(c =>
-      c.code.toUpperCase() === normalised &&
-      c.active !== false
-    );
+    // Try the exact Firestore promo document first, then fall back to env/defaults.
+    const firestoreCode = await getCodeFromFirestore(normalised);
+    const promo = firestoreCode?.active !== false
+      ? firestoreCode
+      : getDefaultCodes().find(c => c.code.toUpperCase() === normalised && c.active !== false);
 
     if (!promo) {
       await new Promise(r => setTimeout(r, 400));

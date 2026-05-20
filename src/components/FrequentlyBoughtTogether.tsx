@@ -14,27 +14,30 @@ function getSuggestions(currentId: string, allProducts: Product[]): Product[] {
 interface Props {
   currentProductId: string;
   currentProduct: Product;
+  suggestedProducts?: Product[];
 }
 
-export default function FrequentlyBoughtTogether({ currentProductId, currentProduct }: Props) {
-  const [products, setProducts] = useState<Product[]>([]);
+export default function FrequentlyBoughtTogether({ currentProductId, currentProduct, suggestedProducts }: Props) {
+  const [loadedProducts, setLoadedProducts] = useState<Product[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bundleAdded, setBundleAdded] = useState(false);
   const { addItem, items } = useCartStore();
 
   useEffect(() => {
+    if (suggestedProducts) return;
     async function load() {
       try {
         const all = await getProducts();
         const active = all.filter(p => p.active !== false && p.id !== currentProductId);
-        setProducts(getSuggestions(currentProductId, active));
+        setLoadedProducts(getSuggestions(currentProductId, active));
       } catch {
         // leave empty — component returns null if no products
       }
     }
     load();
-  }, [currentProductId]);
+  }, [currentProductId, suggestedProducts]);
 
+  const products = suggestedProducts ?? loadedProducts;
   const allItems = [currentProduct, ...products.filter(p => selected.has(p.id))];
   const bundleTotal = allItems.reduce((s, p) => s + p.price, 0);
   const originalTotal = allItems.reduce((s, p) => s + (p.oldPrice ?? p.price), 0);
@@ -43,7 +46,8 @@ export default function FrequentlyBoughtTogether({ currentProductId, currentProd
   function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -76,7 +80,7 @@ export default function FrequentlyBoughtTogether({ currentProductId, currentProd
             <span className="text-[10px] font-black text-[#e91e8c]">Rs. {currentProduct.price.toLocaleString()}</span>
           </div>
 
-          {products.map((p, i) => {
+          {products.map((p) => {
             const isSelected = selected.has(p.id);
             const inCart = items.some(ci => ci.productId === p.id);
             return (

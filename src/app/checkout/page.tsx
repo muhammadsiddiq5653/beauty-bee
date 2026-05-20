@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cart";
 import StoreNav from "@/components/StoreNav";
 import CartDrawer from "@/components/CartDrawer";
 import PromoCodeField from "@/components/PromoCodeField";
+import { trackEvent } from "@/lib/analytics";
 
 const DELIVERY_DEFAULT = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 
@@ -67,6 +68,10 @@ export default function CheckoutPage() {
   const [step, setStep] = useState<1 | 2>(1);
 
   useEffect(() => {
+    trackEvent("checkout_view", { items: itemCount(), subtotal: subtotal() });
+  }, [itemCount, subtotal]);
+
+  useEffect(() => {
     fetch("/api/postex/cities")
       .then(r => r.json())
       .then(d => {
@@ -95,10 +100,16 @@ export default function CheckoutPage() {
 
   async function placeOrder() {
     const err = validate();
-    if (err) { setError(err); return; }
+    if (err) {
+      setError(err);
+      trackEvent("checkout_validation_error", { message: err, step });
+      return;
+    }
     setError(""); setLoading(true);
     const orderItems = items.map(i => ({ productId: i.productId, isBundle: i.isBundle, key: i.key, name: i.name, qty: i.qty, shade: i.shade }));
     try {
+      const startedAt = performance.now();
+      trackEvent("checkout_submit", { items: itemCount(), total: finalTotal });
       const res = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -111,8 +122,18 @@ export default function CheckoutPage() {
         trackingNumber: data.trackingNumber,
         total: data.total,
       });
+      trackEvent("checkout_success", {
+        orderId: data.orderId,
+        trackingCreated: Boolean(data.trackingNumber),
+        durationMs: Math.round(performance.now() - startedAt),
+        total: data.total,
+      });
       clearCart();
     } catch (e: unknown) {
+      trackEvent("checkout_error", {
+        message: e instanceof Error ? e.message : "Unknown error",
+        total: finalTotal,
+      });
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
