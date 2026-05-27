@@ -9,13 +9,16 @@ import { useCartStore } from "@/store/cart";
 export default function CartDrawer({ initialDelivery }: { initialDelivery?: number }) {
   const { items, drawerOpen, closeDrawer, removeItem, updateQty, subtotal, itemCount } = useCartStore();
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [delivery, setDelivery] = useState(initialDelivery ?? parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200"));
+  const [baseDelivery, setBaseDelivery] = useState(initialDelivery ?? parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200"));
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(0);
+  const delivery = freeDeliveryThreshold > 0 && subtotal() >= freeDeliveryThreshold ? 0 : baseDelivery;
   const total = subtotal() > 0 ? subtotal() + delivery : 0;
 
   useEffect(() => {
     if (initialDelivery !== undefined) return;
     fetch("/api/settings").then(r => r.json()).then(s => {
-      if (s.deliveryCharge) setDelivery(s.deliveryCharge);
+      if (s.deliveryCharge) setBaseDelivery(s.deliveryCharge);
+      if (s.freeDeliveryThreshold) setFreeDeliveryThreshold(s.freeDeliveryThreshold);
     }).catch(() => {});
   }, [initialDelivery]);
 

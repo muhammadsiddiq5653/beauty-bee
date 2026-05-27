@@ -44,13 +44,16 @@ const labelClass = "text-xs font-medium text-[#6B6B6B] block mb-1.5";
 export default function CheckoutPage() {
   const { items, subtotal, itemCount, clearCart } = useCartStore();
   const [promo, setPromo] = useState<PromoResult | null>(null);
-  const [delivery, setDelivery] = useState(DELIVERY_DEFAULT);
+  const [baseDelivery, setBaseDelivery] = useState(DELIVERY_DEFAULT);
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(0);
   const discount = promo?.discount ?? 0;
+  const delivery = freeDeliveryThreshold > 0 && subtotal() >= freeDeliveryThreshold ? 0 : baseDelivery;
   const finalTotal = Math.max(0, subtotal() + delivery - discount);
 
   useEffect(() => {
     fetch("/api/settings").then(r => r.json()).then(s => {
-      if (s.deliveryCharge) setDelivery(s.deliveryCharge);
+      if (s.deliveryCharge) setBaseDelivery(s.deliveryCharge);
+      if (s.freeDeliveryThreshold) setFreeDeliveryThreshold(s.freeDeliveryThreshold);
     }).catch(() => {});
   }, []);
   const [cities, setCities] = useState<string[]>(FALLBACK_CITIES);
