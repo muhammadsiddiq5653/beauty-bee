@@ -60,7 +60,8 @@ export default function OrdersPage() {
       o.customerName.toLowerCase().includes(q) ||
       o.refNumber.toLowerCase().includes(q) ||
       o.customerPhone.includes(search) ||
-      (o.postexTrackingNumber ?? "").toLowerCase().includes(q);
+      (o.postexTrackingNumber ?? "").toLowerCase().includes(q) ||
+      (o.promoCode ?? "").toLowerCase().includes(q);
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -289,6 +290,12 @@ export default function OrdersPage() {
                             <div className="flex justify-between text-sm border-t pt-1 mt-1 text-gray-500">
                               <span>Delivery</span><span>Rs. {(o.deliveryCharge ?? 200).toLocaleString()}</span>
                             </div>
+                            {o.promoCode && (
+                              <div className="flex justify-between text-sm text-green-700">
+                                <span>Promo (<span className="font-mono font-bold">{o.promoCode}</span>)</span>
+                                <span>− Rs. {(o.discount ?? 0).toLocaleString()}</span>
+                              </div>
+                            )}
                             <div className="flex justify-between font-black text-[#e91e8c]">
                               <span>Total (COD)</span><span>Rs. {o.total.toLocaleString()}</span>
                             </div>
