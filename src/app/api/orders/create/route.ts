@@ -8,7 +8,7 @@ import nodemailer from "nodemailer";
 import { createOrder, getProducts, getBundles, getStoreSettings } from "@/lib/firestore";
 import { createPostexOrder } from "@/lib/postex";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, increment } from "firebase/firestore";
 import type { Bundle, Order, OrderItem, Product } from "@/types";
 
 const DELIVERY_CHARGE_FALLBACK = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
@@ -218,17 +218,21 @@ export async function POST(req: NextRequest) {
     // ── 2. Validate promo code server-side ──────────────────────────
     let discountAmount = 0;
     let validatedPromoCode = "";
+    let validatedPromoDocId: string | null = null;
     if (promoCode && typeof promoCode === "string") {
       const promoStartedAt = Date.now();
       const promoSnap = await getDocs(collection(db, "promoCodes"));
       mark("promoMs", promoStartedAt);
-      const promoCodes = promoSnap.docs.map(d => d.data() as {
-        code: string; type: "percent" | "fixed"; value: number;
-        active?: boolean; expiresAt?: string; maxUses?: number;
-        usedCount?: number; minOrder?: number;
-      });
+      const promoDocs = promoSnap.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as {
+          code: string; type: "percent" | "fixed"; value: number;
+          active?: boolean; expiresAt?: string; maxUses?: number;
+          usedCount?: number; minOrder?: number;
+        }),
+      }));
       const normalised = promoCode.trim().toUpperCase();
-      const promo = promoCodes.find(c =>
+      const promo = promoDocs.find(c =>
         c.code.toUpperCase() === normalised && c.active !== false
       );
       if (
@@ -241,6 +245,7 @@ export async function POST(req: NextRequest) {
           ? Math.round((subtotal * promo.value) / 100)
           : Math.min(promo.value, subtotal);
         validatedPromoCode = promo.code;
+        validatedPromoDocId = promo.id;
       }
     }
 
@@ -314,6 +319,11 @@ export async function POST(req: NextRequest) {
     const firestoreStartedAt = Date.now();
     const orderId = await createOrder(orderData);
     mark("firestoreCreateMs", firestoreStartedAt);
+
+    // Increment promo code usage counter
+    if (validatedPromoDocId) {
+      updateDoc(doc(db, "promoCodes", validatedPromoDocId), { usedCount: increment(1) }).catch(() => {});
+    }
 
     // 3. Send emails
     const gmailUser = process.env.GMAIL_USER;
