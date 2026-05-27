@@ -114,6 +114,26 @@ export async function getUnbookedOrders(startDate: string, endDate: string) {
   return data.dist;
 }
 
+// 3.16 — GET /order/v1/get-all-order
+// orderStatusID: 0 = all, 2 = Booked, 3 = PostEx WareHouse, 4 = Out For Delivery, etc.
+export async function listOrders(fromDate: string, toDate: string, orderStatusID = 0) {
+  const res = await fetch(`${BASE}/order/v1/get-all-order`, {
+    method: "GET",
+    headers: headers(),
+    body: JSON.stringify({ orderStatusID, fromDate, toDate }),
+  });
+  const data = await res.json();
+  if (data.statusCode !== "200") throw new Error(data.statusMessage);
+  // Each item has { trackingResponse: {...}, trackingNumber, message }
+  return data.dist as Array<{
+    trackingNumber: string;
+    trackingResponse: {
+      transactionStatus: string;
+      transactionStatusHistory?: Array<{ transactionStatusMessageCode: string }>;
+    };
+  }>;
+}
+
 // Map PostEx status codes → internal status
 export function mapPostexStatus(code: string): string {
   const map: Record<string, string> = {
@@ -145,9 +165,10 @@ export function mapPostexStatusToOrderStatus(code: string, fallbackStatus?: stri
 
   const normalized = fallbackStatus?.toLowerCase() ?? "";
   if (normalized.includes("deliver")) return "delivered";
-  if (normalized.includes("return")) return "returned";
-  if (normalized.includes("cancel")) return "cancelled";
+  if (normalized.includes("out for return") || normalized.includes("return")) return "returned";
+  if (normalized.includes("cancel") || normalized.includes("expired") || normalized.includes("un-assigned")) return "cancelled";
   if (normalized.includes("attempt")) return "attempted";
+  if (normalized.includes("en-route") || normalized.includes("enroute") || normalized.includes("picked by")) return "in_transit";
   if (normalized.includes("warehouse")) return "at_warehouse";
   if (normalized.includes("transit") || normalized.includes("route")) return "in_transit";
 

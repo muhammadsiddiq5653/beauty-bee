@@ -12,11 +12,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid event" }, { status: 400 });
     }
 
+    // Only allow a flat object of string/number/boolean primitives in payload
+    const rawPayload = typeof body.payload === "object" && body.payload && !Array.isArray(body.payload)
+      ? body.payload as Record<string, unknown>
+      : {};
+    const safePayload: Record<string, string | number | boolean> = {};
+    for (const [k, v] of Object.entries(rawPayload).slice(0, 20)) {
+      if (typeof v === "string") safePayload[k.slice(0, 40)] = v.slice(0, 200);
+      else if (typeof v === "number" || typeof v === "boolean") safePayload[k.slice(0, 40)] = v;
+    }
+
     await addDoc(collection(db, "analytics_events"), {
       event,
       path: typeof body.path === "string" ? body.path.slice(0, 180) : "",
       referrer: typeof body.referrer === "string" ? body.referrer.slice(0, 300) : "",
-      payload: typeof body.payload === "object" && body.payload ? body.payload : {},
+      payload: safePayload,
       userAgent: req.headers.get("user-agent")?.slice(0, 300) ?? "",
       createdAt: serverTimestamp(),
     });

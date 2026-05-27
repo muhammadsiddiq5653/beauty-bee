@@ -13,6 +13,30 @@ const ALLOWED_TYPES = new Set([
 ]);
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
+function isMagicValid(mimeType: string, bytes: Uint8Array): boolean {
+  switch (mimeType) {
+    case "image/jpeg":
+      return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+    case "image/png":
+      return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+    case "image/webp":
+      return bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+             bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+    case "image/gif":
+      return bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46;
+    case "video/mp4":
+      // ftyp box at offset 4
+      return bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70;
+    case "video/webm":
+      return bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3;
+    case "video/quicktime":
+      return (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) ||
+             (bytes[4] === 0x6D && bytes[5] === 0x6F && bytes[6] === 0x6F && bytes[7] === 0x76);
+    default:
+      return false;
+  }
+}
+
 function cleanFolder(value: FormDataEntryValue | null): string {
   const raw = typeof value === "string" ? value : "beauty-bee";
   const folder = raw.replace(/[^a-zA-Z0-9/_-]/g, "").replace(/\/{2,}/g, "/").slice(0, 80);
@@ -30,6 +54,12 @@ export async function POST(req: NextRequest) {
     if (!ALLOWED_TYPES.has(file.type)) return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     if (file.size > MAX_FILE_SIZE) return NextResponse.json({ error: "File too large" }, { status: 400 });
 
+    // Verify magic bytes — client-declared MIME type is not trusted
+    const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    if (!isMagicValid(file.type, header)) {
+      return NextResponse.json({ error: "File content does not match declared type" }, { status: 400 });
+    }
+
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
@@ -43,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
-    const signature = createHash("sha1").update(paramsToSign + apiSecret).digest("hex");
+    const signature = createHash("sha256").update(paramsToSign + apiSecret).digest("hex");
 
     const upload = new FormData();
     upload.append("file", file);

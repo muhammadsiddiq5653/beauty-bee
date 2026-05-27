@@ -70,3 +70,57 @@ export async function fsPatch(
   }
 }
 
+// Query orders where a field is not null/empty — returns [{id, ...fields}]
+export async function fsQueryActiveOrders(token: string): Promise<Array<Record<string, unknown>>> {
+  const res = await fetch(`${FS_BASE}:runQuery`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: "orders" }],
+        where: {
+          compositeFilter: {
+            op: "AND",
+            filters: [
+              {
+                fieldFilter: {
+                  field: { fieldPath: "postexTrackingNumber" },
+                  op: "NOT_EQUAL",
+                  value: { nullValue: null },
+                },
+              },
+              {
+                fieldFilter: {
+                  field: { fieldPath: "status" },
+                  op: "NOT_IN",
+                  value: {
+                    arrayValue: {
+                      values: [
+                        { stringValue: "delivered" },
+                        { stringValue: "returned" },
+                        { stringValue: "cancelled" },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+        limit: 500,
+      },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message ?? `Firestore query failed: ${res.status}`);
+  }
+  const rows = await res.json() as Array<{ document?: { name: string; fields: FsFields } }>;
+  return rows
+    .filter(r => r.document)
+    .map(r => {
+      const docId = r.document!.name.split("/").pop()!;
+      return { id: docId, ...fsToPlain(r.document!.fields) };
+    });
+}
+

@@ -8,7 +8,7 @@ import nodemailer from "nodemailer";
 import { createOrder, getProducts, getBundles, getStoreSettings } from "@/lib/firestore";
 import { createPostexOrder } from "@/lib/postex";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, updateDoc, increment } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, increment, query, where } from "firebase/firestore";
 import type { Bundle, Order, OrderItem, Product } from "@/types";
 
 const DELIVERY_CHARGE_FALLBACK = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
@@ -20,6 +20,15 @@ const PHONE_RE = /^03\d{9}$/;
 
 function cleanText(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function h(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ── Email templates ──────────────────────────────────────────────
@@ -46,34 +55,34 @@ function businessEmailHtml(order: {
     <div style="background:#9B2B47;padding:24px 28px">
       <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:0.1em;text-transform:uppercase">New Order</p>
       <h1 style="margin:4px 0 0;color:#fff;font-size:22px;font-weight:700">${order.refNumber}</h1>
-      ${order.trackingNumber ? `<p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px">PostEx: ${order.trackingNumber}</p>` : ""}
+      ${order.trackingNumber ? `<p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px">PostEx: ${h(order.trackingNumber)}</p>` : ""}
     </div>
     <div style="padding:24px 28px">
       <table style="width:100%;border-collapse:collapse">
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;color:#6B6B6B;font-size:13px;width:40%">Customer</td>
-          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${order.customerName}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${h(order.customerName)}</td>
         </tr>
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;color:#6B6B6B;font-size:13px">Phone</td>
-          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${order.customerPhone}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${h(order.customerPhone)}</td>
         </tr>
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;color:#6B6B6B;font-size:13px">City</td>
-          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${order.cityName}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${h(order.cityName)}</td>
         </tr>
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;color:#6B6B6B;font-size:13px">Address</td>
-          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${order.deliveryAddress}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${h(order.deliveryAddress)}</td>
         </tr>
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;color:#6B6B6B;font-size:13px">Items</td>
-          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${order.itemSummary}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;font-weight:600;color:#1A1A1A">${h(order.itemSummary)}</td>
         </tr>
         ${order.transactionNotes ? `
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;color:#6B6B6B;font-size:13px">Notes</td>
-          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;color:#1A1A1A">${order.transactionNotes}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #EDE8E4;font-size:13px;color:#1A1A1A">${h(order.transactionNotes)}</td>
         </tr>` : ""}
         <tr>
           <td style="padding:12px 0 0;color:#6B6B6B;font-size:13px">Subtotal</td>
@@ -113,7 +122,7 @@ function customerEmailHtml(order: {
     <div style="background:#9B2B47;padding:24px 28px;text-align:center">
       <p style="margin:0;font-size:28px">🐝</p>
       <h1 style="margin:8px 0 4px;color:#fff;font-size:20px;font-weight:700">Order Confirmed!</h1>
-      <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px">Thank you, ${order.customerName}. We've received your order.</p>
+      <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px">Thank you, ${h(order.customerName)}. We've received your order.</p>
     </div>
     <div style="padding:24px 28px">
       <div style="background:#F9ECF0;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">
@@ -195,7 +204,7 @@ export async function POST(req: NextRequest) {
       }
       const catalogueItem = catalogue.get(item.productId);
       if (!catalogueItem || catalogueItem.active === false) {
-        return NextResponse.json({ error: `Unknown product: ${item.productId}` }, { status: 400 });
+        return NextResponse.json({ error: "Invalid item in order" }, { status: 400 });
       }
       const qty = Number(item.qty);
       if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY_PER_LINE) {
@@ -221,7 +230,10 @@ export async function POST(req: NextRequest) {
     let validatedPromoDocId: string | null = null;
     if (promoCode && typeof promoCode === "string") {
       const promoStartedAt = Date.now();
-      const promoSnap = await getDocs(collection(db, "promoCodes"));
+      const normalised = promoCode.trim().toUpperCase();
+      const promoSnap = await getDocs(
+        query(collection(db, "promoCodes"), where("code", "==", normalised), where("active", "!=", false))
+      );
       mark("promoMs", promoStartedAt);
       const promoDocs = promoSnap.docs.map(d => ({
         id: d.id,
@@ -231,10 +243,7 @@ export async function POST(req: NextRequest) {
           usedCount?: number; minOrder?: number;
         }),
       }));
-      const normalised = promoCode.trim().toUpperCase();
-      const promo = promoDocs.find(c =>
-        c.code.toUpperCase() === normalised && c.active !== false
-      );
+      const promo = promoDocs[0];
       if (
         promo &&
         !(promo.expiresAt && new Date(promo.expiresAt) < new Date()) &&
@@ -250,7 +259,7 @@ export async function POST(req: NextRequest) {
     }
 
     const total = Math.max(0, subtotal + DELIVERY_CHARGE - discountAmount);
-    const refNumber = "BB-" + Date.now().toString().slice(-8);
+    const refNumber = "BB-" + Date.now().toString(36).slice(-6).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
     const pieceCount = validatedItems.reduce((s, i) => s + i.qty, 0);
     if (pieceCount < 1 || pieceCount > MAX_ITEMS_PER_ORDER * MAX_QTY_PER_LINE) {
       return NextResponse.json({ error: "Invalid item count" }, { status: 400 });
@@ -372,8 +381,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await Promise.allSettled(emailPromises);
-      mark("emailMs", emailStartedAt);
+      // Fire-and-forget — email failure must not fail the order response
+      Promise.allSettled(emailPromises)
+        .then(() => mark("emailMs", emailStartedAt))
+        .catch(() => {});
     } else {
       console.warn("[orders/create] email skipped — GMAIL_USER or GMAIL_APP_PASSWORD not set");
     }

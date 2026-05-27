@@ -13,6 +13,9 @@ export async function GET(req: NextRequest) {
   const orderId = req.nextUrl.searchParams.get("orderId");
 
   try {
+    // All tracking lookups require admin auth — response contains customer PII
+    const token = await requireAdminToken(req);
+
     const dist = await trackOrder(tracking);
 
     // Map the latest status code → internal status
@@ -22,7 +25,6 @@ export async function GET(req: NextRequest) {
     const internalStatus = mapPostexStatusToOrderStatus(latestCode ?? "", dist.transactionStatus);
 
     if (orderId) {
-      const token = await requireAdminToken(req);
       await fsPatch("orders", orderId, {
         status: internalStatus,
         postexOrderStatus: dist.transactionStatus,

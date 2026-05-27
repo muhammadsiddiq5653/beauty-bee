@@ -199,6 +199,24 @@ export default function PostexPage() {
     }
   }
 
+  async function syncAll() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/postex/sync", {
+        method: "POST",
+        headers: await adminHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Sync failed");
+      showToast(`✅ Synced ${data.synced} orders (${data.unchanged} unchanged)`);
+      await loadOrders();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : "Sync failed", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function downloadLoadSheet() {
     setSheetLoading(true);
     try {
@@ -261,6 +279,11 @@ export default function PostexPage() {
           <button onClick={loadOrders} disabled={dataLoading}
             className="flex items-center gap-1.5 bg-pink-50 text-[#e91e8c] px-3 py-1.5 rounded-full text-sm font-semibold hover:bg-pink-100 disabled:opacity-60">
             <RefreshCw size={14} className={dataLoading ? "animate-spin" : ""}/>
+          </button>
+          <button onClick={syncAll} disabled={loading}
+            className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-semibold hover:bg-indigo-100 disabled:opacity-60">
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""}/>
+            Sync from PostEx
           </button>
           <a href="https://merchant.postex.pk" target="_blank" rel="noreferrer"
             className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-sm font-semibold hover:bg-purple-100">

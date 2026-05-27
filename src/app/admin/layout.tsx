@@ -50,7 +50,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setError("");
     setSigning(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const token = await cred.user.getIdToken();
+      await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
     } catch {
       setError("Incorrect email or password.");
     } finally {
@@ -59,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   async function logout() {
+    await fetch("/api/admin/session", { method: "DELETE" });
     await signOut(auth);
   }
 
