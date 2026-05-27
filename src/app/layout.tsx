@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Beauty Bee — Lip & Cheek Tint",
   description: "Pakistan's favourite organic beauty brand. Lip & Cheek Tint in 6 stunning shades. Cash on delivery, Pakistan-wide.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Beauty Bee",
+  },
 };
 
 function cleanTrackingId(value: string | undefined) {
@@ -21,6 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        <meta name="theme-color" content="#FAF7F4" />
+        <link rel="apple-touch-icon" href="/logo.svg" />
         {/* ── Google Analytics 4 ── */}
         {GA_ID && (
           <>
@@ -63,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-[#FAF7F4] text-[#1a1a1a] font-sans">
         {children}
         <AnalyticsTracker />
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
