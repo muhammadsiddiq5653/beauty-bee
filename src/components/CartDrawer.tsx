@@ -1,28 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Package } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Minus, Package, Plus, Trash2, X } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 
-export default function CartDrawer({ initialDelivery }: { initialDelivery?: number }) {
+export default function CartDrawer({
+  initialDelivery,
+  initialFreeDeliveryThreshold,
+}: {
+  initialDelivery?: number;
+  initialFreeDeliveryThreshold?: number;
+}) {
   const { items, drawerOpen, closeDrawer, removeItem, updateQty, subtotal, itemCount } = useCartStore();
-  const overlayRef = useRef<HTMLDivElement>(null);
   const [baseDelivery, setBaseDelivery] = useState(initialDelivery ?? parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200"));
-  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(0);
-  const delivery = freeDeliveryThreshold > 0 && subtotal() >= freeDeliveryThreshold ? 0 : baseDelivery;
-  const total = subtotal() > 0 ? subtotal() + delivery : 0;
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(initialFreeDeliveryThreshold ?? 0);
+  const [mounted, setMounted] = useState(false);
+  const drawerItems = mounted ? items : [];
+  const drawerCount = mounted ? itemCount() : 0;
+  const threshold = freeDeliveryThreshold > 0 ? freeDeliveryThreshold : 0;
+  const sub = mounted ? subtotal() : 0;
+  const delivery = freeDeliveryThreshold > 0 && sub >= freeDeliveryThreshold ? 0 : baseDelivery;
+  const total = sub > 0 ? sub + delivery : 0;
+  const remaining = threshold > 0 ? Math.max(0, threshold - sub) : 0;
+  const pct = threshold > 0 ? Math.min(100, (sub / threshold) * 100) : 0;
 
   useEffect(() => {
-    if (initialDelivery !== undefined) return;
-    fetch("/api/settings").then(r => r.json()).then(s => {
-      if (s.deliveryCharge) setBaseDelivery(s.deliveryCharge);
-      if (s.freeDeliveryThreshold) setFreeDeliveryThreshold(s.freeDeliveryThreshold);
-    }).catch(() => {});
-  }, [initialDelivery]);
+    const id = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
 
-  // Close on Escape key
+  useEffect(() => {
+    if (initialDelivery !== undefined && initialFreeDeliveryThreshold !== undefined) return;
+    fetch("/api/settings").then(r => r.json()).then(s => {
+      if (initialDelivery === undefined && s.deliveryCharge) setBaseDelivery(s.deliveryCharge);
+      if (initialFreeDeliveryThreshold === undefined && s.freeDeliveryThreshold !== undefined) setFreeDeliveryThreshold(s.freeDeliveryThreshold);
+    }).catch(() => {});
+  }, [initialDelivery, initialFreeDeliveryThreshold]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") closeDrawer();
@@ -31,126 +47,103 @@ export default function CartDrawer({ initialDelivery }: { initialDelivery?: numb
     return () => document.removeEventListener("keydown", onKey);
   }, [closeDrawer]);
 
-  // Prevent body scroll when open
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [drawerOpen]);
 
-  if (!drawerOpen && items.length === 0) return null;
+  if (!drawerOpen && drawerItems.length === 0) return null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        ref={overlayRef}
-        onClick={closeDrawer}
-        className={`fixed inset-0 z-50 bg-black/50 transition-opacity duration-300 ${drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-      />
-
-      {/* Drawer */}
-      <div className={`fixed top-0 right-0 h-full w-full max-w-sm z-50 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDE8E4] bg-white text-[#1A1A1A]">
-          <div className="flex items-center gap-2">
-            <ShoppingBag size={20} className="text-[#9B2B47]" />
-            <span className="font-serif font-bold text-lg text-[#1A1A1A]">Your Cart</span>
-            {itemCount() > 0 && (
-              <span className="bg-[#F9ECF0] text-[#9B2B47] text-xs font-semibold px-2 py-0.5 rounded-full">
-                {itemCount()} {itemCount() === 1 ? "item" : "items"}
-              </span>
-            )}
-          </div>
-          <button onClick={closeDrawer} className="p-1.5 rounded-full hover:bg-[#FAF7F4] text-[#6B6B6B] transition-colors">
+    <div
+      className={`bb-drawer-overlay ${drawerOpen ? "is-open" : ""}`}
+      onClick={event => {
+        if (event.target === event.currentTarget) closeDrawer();
+      }}
+    >
+      <aside className={`bb-drawer ${drawerOpen ? "is-open" : ""}`} role="dialog" aria-label="Shopping cart">
+        <div className="flex items-center justify-between border-b border-[rgba(155,43,71,0.08)] px-5 py-5">
+          <h2 className="bb-serif flex items-center gap-2 text-2xl text-[var(--bb-ink)]">
+            Your Cart
+            {drawerCount > 0 ? <span className="grid h-6 min-w-6 place-items-center rounded-full bg-[var(--bb-berry)] px-2 text-xs font-black text-white">{drawerCount}</span> : null}
+          </h2>
+          <button className="grid h-10 w-10 place-items-center rounded-full bg-[rgba(155,43,71,0.07)] text-[var(--bb-ink)]" onClick={closeDrawer} aria-label="Close cart">
             <X size={20} />
           </button>
         </div>
 
-        {/* Items */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-              <Package size={48} className="text-[#EDE8E4] mb-4" />
-              <p className="font-serif font-bold text-[#1A1A1A] text-lg mb-1">Your cart is empty</p>
-              <p className="text-sm text-[#6B6B6B] mb-6">Add some products to get started</p>
-              <button onClick={closeDrawer}
-                className="bg-[#9B2B47] hover:bg-[#7D1E35] text-white px-6 py-2.5 rounded-full font-semibold text-sm transition-colors">
-                Continue Shopping
-              </button>
+        {drawerItems.length === 0 ? (
+          <div className="grid flex-1 place-items-center px-8 text-center">
+            <div>
+              <Package className="mx-auto text-[var(--bb-berry)]" size={48} />
+              <h3 className="bb-serif mt-4 text-3xl">Your cart is empty.</h3>
+              <p className="mt-2 text-sm font-semibold text-[var(--bb-ink-soft)]">Add your tint shade and come back here.</p>
+              <button className="bb-btn bb-btn-ghost mt-6" onClick={closeDrawer}>Continue shopping</button>
             </div>
-          ) : (
-            items.map(item => (
-              <div key={item.key} className="flex items-center gap-3 bg-[#FAF7F4] rounded-2xl p-3">
-                {/* Thumbnail */}
-                <div className="w-14 h-14 rounded-xl bg-white border border-[#EDE8E4] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {item.imageUrl ? (
-                    <Image src={item.imageUrl} alt={item.name} width={56} height={56} className="object-cover w-full h-full rounded-xl" />
-                  ) : (
-                    <span className="text-2xl">{item.emoji ?? "🛍️"}</span>
-                  )}
-                </div>
+          </div>
+        ) : (
+          <>
+            <div className="px-5 pt-4">
+              {threshold > 0 ? (
+                <>
+                  <div className="bb-freebar-track"><div className="bb-freebar-fill" style={{ width: `${pct}%` }} /></div>
+                  <span className="bb-freebar-label">
+                    {remaining === 0 ? "Free delivery unlocked" : `Rs. ${remaining.toLocaleString()} away from free delivery`}
+                  </span>
+                </>
+              ) : null}
+            </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-[#1A1A1A] text-sm leading-tight truncate">{item.name}</p>
-                  {item.isBundle && <span className="text-[10px] bg-[#F9ECF0] text-[#9B2B47] border border-[#9B2B47]/20 px-1.5 py-0.5 rounded-full font-semibold">Bundle</span>}
-                  <p className="text-xs text-[#6B6B6B] mt-0.5">Rs. {item.unitPrice.toLocaleString()} each</p>
-                  <p className="font-bold text-[#9B2B47] text-sm">Rs. {(item.qty * item.unitPrice).toLocaleString()}</p>
-                </div>
-
-                {/* Qty controls */}
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => updateQty(item.key, item.qty - 1)}
-                      className="w-6 h-6 rounded-full border border-[#EDE8E4] text-[#9B2B47] flex items-center justify-center hover:bg-[#9B2B47] hover:text-white hover:border-[#9B2B47] transition-colors">
-                      <Minus size={10} />
-                    </button>
-                    <span className="w-6 text-center font-bold text-[#1A1A1A] text-sm">{item.qty}</span>
-                    <button onClick={() => updateQty(item.key, item.qty + 1)}
-                      className="w-6 h-6 rounded-full border border-[#EDE8E4] text-[#9B2B47] flex items-center justify-center hover:bg-[#9B2B47] hover:text-white hover:border-[#9B2B47] transition-colors">
-                      <Plus size={10} />
+            <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+              {drawerItems.map(item => (
+                <div key={item.key} className="flex items-center gap-3 rounded-2xl border border-[rgba(155,43,71,0.06)] bg-white/65 p-3">
+                  <div className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-xl bg-[var(--bb-cream-deep)] text-2xl">
+                    {item.imageUrl ? (
+                      <Image src={item.imageUrl} alt={item.name} width={56} height={56} className="h-full w-full object-cover" />
+                    ) : (
+                      item.emoji ?? <Package size={20} />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black text-[var(--bb-ink)]">{item.name}</p>
+                    {item.shade ? <p className="text-xs font-semibold text-[var(--bb-ink-soft)]">{item.shade}</p> : null}
+                    <p className="bb-serif text-lg font-bold text-[var(--bb-berry)]">Rs. {(item.qty * item.unitPrice).toLocaleString()}</p>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center overflow-hidden rounded-xl bg-[rgba(155,43,71,0.07)]">
+                      <button className="grid h-8 w-8 place-items-center" onClick={() => updateQty(item.key, item.qty - 1)} aria-label={`Decrease ${item.name}`}>
+                        <Minus size={12} />
+                      </button>
+                      <span className="w-7 text-center text-sm font-black">{item.qty}</span>
+                      <button className="grid h-8 w-8 place-items-center" onClick={() => updateQty(item.key, item.qty + 1)} aria-label={`Increase ${item.name}`}>
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                    <button className="text-[var(--bb-ink-soft)] hover:text-red-600" onClick={() => removeItem(item.key)} aria-label={`Remove ${item.name}`}>
+                      <Trash2 size={15} />
                     </button>
                   </div>
-                  <button onClick={() => removeItem(item.key)}
-                    className="text-red-400 hover:text-red-600 p-1">
-                    <Trash2 size={13} />
-                  </button>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Footer */}
-        {items.length > 0 && (
-          <div className="border-t border-[#EDE8E4] px-4 py-4 space-y-3 bg-white">
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-sm text-[#6B6B6B]">
-                <span>Subtotal</span>
-                <span>Rs. {subtotal().toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm text-[#6B6B6B]">
-                <span>Delivery (PostEx COD)</span>
-                <span>Rs. {delivery}</span>
-              </div>
-              <div className="flex justify-between font-bold text-[#9B2B47] text-base border-t border-[#EDE8E4] pt-1.5">
-                <span>Total (COD)</span>
-                <span>Rs. {total.toLocaleString()}</span>
-              </div>
+              ))}
             </div>
 
-            <Link href="/checkout" onClick={closeDrawer}
-              className="btn-ripple w-full bg-[#9B2B47] hover:bg-[#7D1E35] text-white rounded-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-md">
-              Place Order <ArrowRight size={16} />
-            </Link>
-            <button onClick={closeDrawer}
-              className="w-full text-center text-sm text-[#6B6B6B] hover:text-[#9B2B47] py-1 font-medium transition-colors">
-              ← Continue Shopping
-            </button>
-          </div>
+            <div className="border-t border-[rgba(155,43,71,0.08)] px-5 pb-[calc(18px+env(safe-area-inset-bottom))] pt-4">
+              <div className="space-y-2 text-sm font-semibold text-[var(--bb-ink-soft)]">
+                <div className="flex justify-between"><span>Subtotal</span><span>Rs. {sub.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>Delivery</span><span>{delivery === 0 ? "FREE" : `Rs. ${delivery.toLocaleString()}`}</span></div>
+                <div className="flex justify-between border-t border-[rgba(155,43,71,0.08)] pt-3 text-[var(--bb-ink)]">
+                  <span>Total</span>
+                  <span className="bb-serif text-2xl text-[var(--bb-berry)]">Rs. {total.toLocaleString()}</span>
+                </div>
+              </div>
+              <Link href="/checkout" onClick={closeDrawer} className="bb-btn bb-btn-primary mt-4 w-full">
+                Checkout - Rs. {total.toLocaleString()} <ArrowRight size={18} />
+              </Link>
+              <button className="mt-3 w-full py-2 text-sm font-black text-[var(--bb-ink-soft)]" onClick={closeDrawer}>Continue shopping</button>
+            </div>
+          </>
         )}
-      </div>
-    </>
+      </aside>
+    </div>
   );
 }

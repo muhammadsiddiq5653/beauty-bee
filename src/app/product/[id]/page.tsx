@@ -17,13 +17,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-[#FAF7F4]">
+      <div className="bb-page">
+        <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>
         <StoreNav />
         <CartDrawer initialDelivery={settings.deliveryCharge} />
-        <div className="max-w-lg mx-auto px-5 py-20 text-center">
-          <Package size={48} className="text-[#EDE8E4] mx-auto mb-4" />
-          <h1 className="font-serif font-bold text-xl text-[#1A1A1A] mb-2">Product not found</h1>
-          <Link href="/shop" className="text-[#9B2B47] font-medium hover:underline text-sm">Back to Shop</Link>
+        <div className="bb-shell grid min-h-[70svh] place-items-center px-5 text-center">
+          <div className="bb-glass rounded-[28px] p-8">
+            <Package size={48} className="mx-auto mb-4 text-[var(--bb-berry)]" />
+            <h1 className="bb-serif text-4xl text-[var(--bb-ink)]">Product not found</h1>
+            <Link href="/shop" className="bb-btn bb-btn-primary mt-6">Back to Shop</Link>
+          </div>
         </div>
       </div>
     );
@@ -37,4 +40,3 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     />
   );
 }
-

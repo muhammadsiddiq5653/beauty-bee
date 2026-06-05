@@ -14,14 +14,16 @@ export default async function BundleDetailPage({ params }: { params: Promise<{ i
 
   if (!bundle) {
     return (
-      <div className="min-h-screen bg-[#FAF7F5] flex flex-col items-center justify-center gap-4 p-6">
-        <Gift size={48} className="text-gray-300" />
-        <p className="text-gray-500 font-semibold">Bundle not found</p>
-        <Link href="/shop" className="text-[#e91e8c] font-bold text-sm underline">Back to Shop</Link>
+      <div className="bb-page grid min-h-screen place-items-center p-6 text-center">
+        <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>
+        <div className="bb-glass rounded-[28px] p-8">
+          <Gift size={48} className="mx-auto text-[var(--bb-berry)]" />
+          <p className="bb-serif mt-4 text-4xl text-[var(--bb-ink)]">Bundle not found</p>
+          <Link href="/shop" className="bb-btn bb-btn-primary mt-6">Back to Shop</Link>
+        </div>
       </div>
     );
   }
 
   return <BundleDetailClient bundle={bundle} deliveryCharge={settings.deliveryCharge} />;
 }
-

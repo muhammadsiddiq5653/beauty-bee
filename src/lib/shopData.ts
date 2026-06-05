@@ -1,18 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { DEFAULT_SETTINGS, getBundles, getProducts, getStoreSettings } from "@/lib/firestore";
-import { DEFAULT_BUNDLES, DEFAULT_PRODUCTS } from "@/lib/catalogue";
 import type { Bundle, Product } from "@/types";
-
-const PRODUCT_IDS = ["tint", "mask", "serum", "soap"];
-const BUNDLE_IDS = ["starter", "glow", "complete", "duo"];
-
-function fallbackProducts(): Product[] {
-  return DEFAULT_PRODUCTS.map((p, i) => ({ ...p, id: PRODUCT_IDS[i] })) as Product[];
-}
-
-function fallbackBundles(): Bundle[] {
-  return DEFAULT_BUNDLES.map((b, i) => ({ ...b, id: BUNDLE_IDS[i] })) as Bundle[];
-}
 
 export const getCachedShopData = unstable_cache(
   async () => {
@@ -26,14 +14,14 @@ export const getCachedShopData = unstable_cache(
       const activeBundles = bundles.filter(b => b.active !== false);
 
       return {
-        products: activeProducts.length > 0 ? activeProducts : fallbackProducts(),
+        products: activeProducts,
         bundles: activeBundles,
         settings,
       };
     } catch {
       return {
-        products: fallbackProducts(),
-        bundles: fallbackBundles(),
+        products: [],
+        bundles: [],
         settings: DEFAULT_SETTINGS,
       };
     }

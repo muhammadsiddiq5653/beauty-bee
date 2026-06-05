@@ -1,16 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  ChevronLeft, CheckCircle, Package,
-  Shield, ShoppingBag, Truck
+  Check, CheckCircle, ChevronLeft, Gift,
+  Shield, ShoppingBag, Sparkles, Truck
 } from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
 import MediaGallery from "@/components/MediaGallery";
 import StoreNav from "@/components/StoreNav";
 import { useCartStore } from "@/store/cart";
+import { trackPixel, PIXEL_CURRENCY } from "@/lib/fbpixel";
 import type { Bundle } from "@/types";
 
 const WhatsAppButton = dynamic(() => import("@/components/WhatsAppButton"), {
@@ -23,107 +25,124 @@ interface Props {
   deliveryCharge: number;
 }
 
+function Mesh() {
+  return <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>;
+}
+
 export default function BundleDetailClient({ bundle, deliveryCharge }: Props) {
   const [added, setAdded] = useState(false);
   const { addBundle, items } = useCartStore();
   const inCart = items.some(item => item.productId === bundle.id && item.isBundle);
 
+  useEffect(() => {
+    trackPixel("ViewContent", {
+      content_ids: [bundle.id],
+      content_name: bundle.name,
+      content_type: "product",
+      value: bundle.price,
+      currency: PIXEL_CURRENCY,
+    });
+  }, [bundle.id, bundle.name, bundle.price]);
+
   function handleAdd() {
     addBundle(bundle);
     setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    setTimeout(() => setAdded(false), 1600);
   }
 
-  const savings = bundle.oldPrice - bundle.price;
+  const savings = Math.max(0, bundle.oldPrice - bundle.price);
   const savingsPct = bundle.oldPrice ? Math.round((savings / bundle.oldPrice) * 100) : 0;
   const includesList = bundle.includes
-    ? bundle.includes.split(/[,+&]/).map(item => item.trim()).filter(Boolean)
+    ? bundle.includes.split(/[,+&-]/).map(item => item.trim()).filter(Boolean)
     : [];
 
   return (
-    <div className="min-h-screen bg-[#FAF7F5]">
+    <div className="bb-page pb-28">
+      <Mesh />
       <StoreNav />
       <CartDrawer initialDelivery={deliveryCharge} />
+      <WhatsAppButton />
 
-      <div className="max-w-lg mx-auto px-4 pt-4 pb-24">
-        <Link href="/shop" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#e91e8c] mb-4 font-medium">
-          <ChevronLeft size={16} /> Back to Shop
+      <main className="bb-shell px-5 pt-5">
+        <Link href="/shop" className="mb-5 inline-flex items-center gap-1 text-sm font-black text-[var(--bb-ink-soft)] hover:text-[var(--bb-berry)]">
+          <ChevronLeft size={16} /> Back to shop
         </Link>
 
-        <div className="rounded-3xl overflow-hidden shadow-sm border border-[#EDE8E4] mb-6">
-          <MediaGallery
-            media={bundle.media ?? []}
-            fallbackImageUrl={bundle.imageUrl}
-            fallbackEmoji={bundle.emoji}
-            alt={bundle.name}
-          />
-        </div>
-
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-bold bg-purple-100 text-purple-700 px-2.5 py-0.5 rounded-full">Bundle Deal</span>
-            {savingsPct > 0 && (
-              <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full">
-                -{savingsPct}% OFF
-              </span>
+        <section className="grid gap-5">
+          <div className="overflow-hidden rounded-[26px]">
+            {bundle.imageUrl || bundle.media?.length ? (
+              <MediaGallery
+                media={bundle.media ?? []}
+                fallbackImageUrl={bundle.imageUrl}
+                fallbackEmoji={bundle.emoji}
+                alt={bundle.name}
+              />
+            ) : (
+              <div className="bb-shotcard grid aspect-[4/3] place-items-center text-8xl">{bundle.emoji}</div>
             )}
           </div>
-          <h1 className="text-2xl font-black text-[#1A1A1A] leading-tight mb-2">{bundle.name}</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-2xl font-black text-[#9B2B47]">Rs. {bundle.price.toLocaleString()}</span>
-            {bundle.oldPrice > 0 && <span className="text-base text-gray-400 line-through">Rs. {bundle.oldPrice.toLocaleString()}</span>}
-            {savings > 0 && <span className="text-sm font-bold text-green-600">Save Rs. {savings.toLocaleString()}</span>}
-          </div>
-        </div>
 
-        {includesList.length > 0 && (
-          <div className="bg-white rounded-2xl border border-[#EDE8E4] p-4 mb-4">
-            <h2 className="text-sm font-black text-[#8b0057] mb-3">What&apos;s Included</h2>
-            <ul className="space-y-2">
-              {includesList.map(item => (
-                <li key={item} className="flex items-center gap-2 text-sm text-gray-700">
-                  <CheckCircle size={15} className="text-green-500 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          <div className="bb-glass rounded-[26px] p-6">
+            <span className="bb-eyebrow">Bundle Deal</span>
+            <h1 className="bb-serif mt-2 text-5xl leading-[0.95] text-[var(--bb-ink)]">{bundle.name}</h1>
+            <p className="mt-4 text-base font-bold leading-relaxed text-[var(--bb-ink-soft)]">{bundle.includes}</p>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { icon: <Truck size={18} />, label: "COD Delivery", sub: "Pay on arrival" },
-            { icon: <Shield size={18} />, label: "100% Organic", sub: "Natural ingredients" },
-            { icon: <Package size={18} />, label: "Pakistan-wide", sub: "via PostEx" },
-          ].map(({ icon, label, sub }) => (
-            <div key={label} className="bg-white rounded-2xl border border-[#EDE8E4] p-3 flex flex-col items-center text-center gap-1">
-              <div className="w-9 h-9 rounded-full bg-pink-50 flex items-center justify-center text-[#e91e8c]">{icon}</div>
-              <span className="text-[11px] font-bold text-gray-700">{label}</span>
-              <span className="text-[10px] text-gray-400">{sub}</span>
+            <div className="mt-5 flex flex-wrap items-end gap-3">
+              <strong className="bb-serif text-4xl leading-none text-[var(--bb-berry)]">Rs. {bundle.price.toLocaleString()}</strong>
+              {bundle.oldPrice ? <s className="text-base font-bold text-[var(--bb-ink-soft)]">Rs. {bundle.oldPrice.toLocaleString()}</s> : null}
+              {savingsPct > 0 ? <span className="rounded-full bg-[var(--bb-berry)] px-3 py-1 text-xs font-black text-white">-{savingsPct}%</span> : null}
             </div>
-          ))}
-        </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-lg z-40">
-          <div className="max-w-lg mx-auto">
-            <button
-              onClick={handleAdd}
-              className={`w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-all duration-300 shadow-lg ${
-                added || inCart
-                  ? "bg-green-500 text-white scale-[0.98]"
-                  : "bg-gradient-to-r from-[#8b0057] to-[#e91e8c] text-white hover:opacity-90 active:scale-95"
-              }`}
-            >
-              {added || inCart
-                ? <><CheckCircle size={20} /> Added to Cart</>
-                : <><ShoppingBag size={20} /> Add to Cart - Rs. {bundle.price.toLocaleString()}</>
-              }
-            </button>
+            {savings > 0 ? (
+              <div className="mt-4 rounded-2xl bg-white/60 p-4 text-sm font-black text-[var(--bb-ink)]">
+                You save Rs. {savings.toLocaleString()} with this edit.
+              </div>
+            ) : null}
+
+            {includesList.length > 0 ? (
+              <div className="mt-6 border-t border-[rgba(155,43,71,0.08)] pt-5">
+                <h2 className="bb-serif text-2xl text-[var(--bb-ink)]">What&apos;s included</h2>
+                <ul className="mt-3 grid gap-2">
+                  {includesList.map(item => (
+                    <li key={item} className="flex items-center gap-2 rounded-2xl bg-white/55 px-4 py-3 text-sm font-bold text-[var(--bb-ink-soft)]">
+                      <CheckCircle size={16} className="text-green-600" /> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="mt-6 grid grid-cols-3 gap-3 border-t border-[rgba(155,43,71,0.08)] pt-5">
+              {[
+                { icon: <Truck size={16} />, title: "COD", sub: "Pay on arrival" },
+                { icon: <Sparkles size={16} />, title: "Organic", sub: "Beauty ritual" },
+                { icon: <Shield size={16} />, title: "Tracked", sub: "via PostEx" },
+              ].map(badge => (
+                <div key={badge.title} className="rounded-2xl bg-white/55 p-3 text-center">
+                  <span className="mx-auto mb-2 grid h-9 w-9 place-items-center rounded-full bg-[rgba(155,43,71,0.08)] text-[var(--bb-berry)]">{badge.icon}</span>
+                  <p className="text-[11px] font-black">{badge.title}</p>
+                  <p className="text-[10px] font-semibold text-[var(--bb-ink-soft)]">{badge.sub}</p>
+                </div>
+              ))}
+            </div>
           </div>
+        </section>
+      </main>
+
+      <div className="bb-sticky bb-glass">
+        <div className="bb-sticky-row">
+          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-full bg-[rgba(155,43,71,0.09)] text-[var(--bb-berry)]">
+            {bundle.imageUrl ? <Image src={bundle.imageUrl} alt="" width={44} height={44} className="h-full w-full rounded-full object-cover" /> : <Gift size={20} />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <strong className="bb-serif block truncate text-xl leading-none">{bundle.name}</strong>
+            <span className="text-sm font-black text-[var(--bb-berry)]">Rs. {bundle.price.toLocaleString()}</span>
+          </div>
+          <button className={`bb-btn bb-btn-primary px-4 ${added || inCart ? "bg-green-600" : ""}`} onClick={handleAdd}>
+            {added || inCart ? <><Check size={17} /> Added</> : <><ShoppingBag size={17} /> Add</>}
+          </button>
         </div>
       </div>
-
-      <WhatsAppButton />
     </div>
   );
 }

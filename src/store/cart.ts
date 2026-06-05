@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem, Product, Bundle } from "@/types";
+import { trackPixel, PIXEL_CURRENCY } from "@/lib/fbpixel";
 
 const DELIVERY = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 
@@ -31,6 +32,7 @@ export const useCartStore = create<CartState>()(
       addItem: (product, qty, shade) => {
         const key = product.id + (shade ? `_${shade}` : "");
         const existing = get().items.find(i => i.key === key);
+        const shadeImage = shade ? product.shades.find(s => s.name === shade)?.imageUrl : undefined;
         if (existing) {
           set(s => ({
             items: s.items.map(i =>
@@ -49,12 +51,20 @@ export const useCartStore = create<CartState>()(
                 unitPrice: product.price,
                 shade,
                 emoji: product.emoji,
-                imageUrl: product.imageUrl,
+                imageUrl: shadeImage ?? product.imageUrl,
                 isBundle: false,
               },
             ],
           }));
         }
+        trackPixel("AddToCart", {
+          content_ids: [product.id],
+          content_name: product.name + (shade ? ` (${shade})` : ""),
+          content_type: "product",
+          contents: [{ id: product.id, quantity: qty }],
+          value: product.price * qty,
+          currency: PIXEL_CURRENCY,
+        });
         get().openDrawer();
       },
 
@@ -78,11 +88,20 @@ export const useCartStore = create<CartState>()(
                 qty: 1,
                 unitPrice: bundle.price,
                 emoji: bundle.emoji,
+                imageUrl: bundle.imageUrl,
                 isBundle: true,
               },
             ],
           }));
         }
+        trackPixel("AddToCart", {
+          content_ids: [bundle.id],
+          content_name: bundle.name,
+          content_type: "product",
+          contents: [{ id: bundle.id, quantity: 1 }],
+          value: bundle.price,
+          currency: PIXEL_CURRENCY,
+        });
         get().openDrawer();
       },
 

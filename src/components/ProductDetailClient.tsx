@@ -1,11 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  ChevronLeft, CheckCircle, Leaf, Minus, Package,
-  Plus, ShoppingBag, Star, Truck
+  Check, ChevronLeft, Minus, Plus,
+  Shield, ShoppingBag, Sparkles, Star, Truck
 } from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
 import FrequentlyBoughtTogether from "@/components/FrequentlyBoughtTogether";
@@ -13,11 +14,12 @@ import MediaGallery from "@/components/MediaGallery";
 import StoreNav from "@/components/StoreNav";
 import UrgencyBadge from "@/components/UrgencyBadge";
 import { useCartStore } from "@/store/cart";
-import type { Product } from "@/types";
+import { trackPixel, PIXEL_CURRENCY } from "@/lib/fbpixel";
+import type { Product, Shade } from "@/types";
 
 const ReviewsSection = dynamic(() => import("@/components/ReviewsSection"), {
   ssr: false,
-  loading: () => <div className="h-40 rounded-2xl bg-white border border-[#EDE8E4]" />,
+  loading: () => <div className="h-40 rounded-[22px] bg-white/50" />,
 });
 const WhatsAppButton = dynamic(() => import("@/components/WhatsAppButton"), {
   ssr: false,
@@ -30,11 +32,79 @@ interface Props {
   deliveryCharge: number;
 }
 
+const LOCAL_SHADE_IMAGES = [
+  "/beauty-bee/tint-redberry.jpeg",
+  "/beauty-bee/tint-pinkrose.jpeg",
+  "/beauty-bee/tint-peachy.jpeg",
+];
+
+type ShadeView = Shade & { img: string; id: string; vibe: string };
+
+function shadeSlug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function buildShades(product: Product): ShadeView[] {
+  return product.shades.map((shade, index) => ({
+    ...shade,
+    id: shadeSlug(shade.name),
+    hex: shade.hex ?? ["#A52647", "#D26B86", "#EA8A63"][index % 3],
+    img: LOCAL_SHADE_IMAGES[index % LOCAL_SHADE_IMAGES.length] ?? shade.imageUrl ?? product.imageUrl ?? "",
+    vibe: ["Bold", "Soft", "Fresh", "Glow"][index % 4],
+  }));
+}
+
+function Mesh() {
+  return <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>;
+}
+
+function ShadeGallery({ product, shades, selected }: { product: Product; shades: ShadeView[]; selected: string }) {
+  const active = Math.max(0, shades.findIndex(shade => shade.name === selected));
+
+  if (shades.length === 0) {
+    return (
+      <div className="overflow-hidden rounded-[26px]">
+        <MediaGallery media={product.media ?? []} fallbackImageUrl={product.imageUrl} fallbackEmoji={product.emoji} alt={product.name} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bb-shotcard">
+      <div className="bb-shot">
+        {shades.map((shade, index) => (
+          <Image
+            key={shade.id}
+            src={shade.img}
+            alt={index === active ? `${product.name} in ${shade.name}` : ""}
+            fill
+            priority={index === active}
+            sizes="(max-width: 720px) 100vw, 560px"
+            className={index === active ? "is-on" : ""}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ProductDetailClient({ product, suggestions, deliveryCharge }: Props) {
-  const [selectedShade, setSelectedShade] = useState("");
+  const shades = useMemo(() => buildShades(product), [product]);
+  const [selectedShade, setSelectedShade] = useState(shades[0]?.name ?? "");
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const { addItem } = useCartStore();
+  const activeShade = shades.find(shade => shade.name === selectedShade) ?? shades[0];
+
+  useEffect(() => {
+    trackPixel("ViewContent", {
+      content_ids: [product.id],
+      content_name: product.name,
+      content_type: "product",
+      value: product.price,
+      currency: PIXEL_CURRENCY,
+    });
+  }, [product.id, product.name, product.price]);
 
   function handleAddToCart() {
     if (product.needsShade && !selectedShade) {
@@ -43,133 +113,93 @@ export default function ProductDetailClient({ product, suggestions, deliveryChar
     }
     addItem(product, qty, selectedShade || undefined);
     setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    setTimeout(() => setAdded(false), 1600);
   }
 
   const savings = product.oldPrice ? product.oldPrice - product.price : 0;
   const savingsPct = product.oldPrice ? Math.round((savings / product.oldPrice) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#FAF7F4]">
+    <div className="bb-page pb-28" style={activeShade ? { "--bb-shade": activeShade.hex, "--bb-shade-glow": `${activeShade.hex}70` } as React.CSSProperties : undefined}>
+      <Mesh />
       <StoreNav />
       <CartDrawer initialDelivery={deliveryCharge} />
       <WhatsAppButton />
 
-      <div className="max-w-2xl mx-auto px-5 py-5 pb-24">
-        <div className="flex items-center gap-1.5 text-xs text-[#6B6B6B] mb-5">
-          <Link href="/" className="hover:text-[#9B2B47] transition-colors">Home</Link>
-          <span>/</span>
-          <Link href="/shop" className="hover:text-[#9B2B47] transition-colors">Shop</Link>
-          <span>/</span>
-          <span className="text-[#1A1A1A] font-medium">{product.name}</span>
-        </div>
+      <main className="bb-shell px-5 pt-5">
+        <Link href="/shop" className="mb-5 inline-flex items-center gap-1 text-sm font-black text-[var(--bb-ink-soft)] hover:text-[var(--bb-berry)]">
+          <ChevronLeft size={16} /> Back to shop
+        </Link>
 
-        <div className="bg-white rounded-3xl border border-[#EDE8E4] overflow-hidden">
-          <div className="relative">
-            <MediaGallery
-              media={product.media ?? []}
-              fallbackImageUrl={product.imageUrl}
-              fallbackEmoji={product.emoji}
-              alt={product.name}
-              shades={product.shades}
-              selectedShade={selectedShade}
-            />
-            {savingsPct > 0 && (
-              <span className="absolute top-4 left-4 bg-[#9B2B47] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
-                -{savingsPct}% OFF
-              </span>
-            )}
-            {product.badge && (
-              <span className="absolute top-4 right-4 bg-white text-[#9B2B47] text-xs font-semibold px-3 py-1 rounded-full border border-[#EDE8E4] shadow-sm z-10">
-                {product.badge}
-              </span>
-            )}
-          </div>
+        <section className="grid gap-5">
+          <ShadeGallery product={product} shades={shades} selected={selectedShade} />
 
-          <div className="p-6 space-y-5">
-            <div>
-              <h1 className="font-serif font-bold text-2xl text-[#1A1A1A] leading-tight">{product.name}</h1>
-              {product.subtitle && <p className="text-sm text-[#6B6B6B] mt-1">{product.subtitle}</p>}
-              <div className="flex items-baseline gap-3 mt-3">
-                <span className="font-serif font-bold text-3xl text-[#9B2B47]">Rs. {product.price.toLocaleString()}</span>
-                {product.oldPrice && <span className="text-base text-[#6B6B6B] line-through">Rs. {product.oldPrice.toLocaleString()}</span>}
-                {savings > 0 && (
-                  <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-full font-medium">
-                    Save Rs. {savings.toLocaleString()}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 mt-2">
-                {[1, 2, 3, 4, 5].map(score => <Star key={score} size={13} className="fill-[#C9A84C] text-[#C9A84C]" />)}
-                <span className="text-xs text-[#6B6B6B] ml-1">2,500+ happy customers</span>
-              </div>
+          <div className="bb-glass rounded-[26px] p-6">
+            <span className="bb-eyebrow">{product.badge || "Beauty Bee"}</span>
+            <h1 className="bb-serif mt-2 text-5xl leading-[0.95] text-[var(--bb-ink)]">{product.name}</h1>
+            {product.subtitle ? <p className="mt-3 text-base font-bold text-[var(--bb-ink-soft)]">{product.subtitle}</p> : null}
+
+            <div className="mt-5 flex flex-wrap items-end gap-3">
+              <strong className="bb-serif text-4xl leading-none text-[var(--bb-berry)]">Rs. {product.price.toLocaleString()}</strong>
+              {product.oldPrice ? <s className="text-base font-bold text-[var(--bb-ink-soft)]">Rs. {product.oldPrice.toLocaleString()}</s> : null}
+              {savingsPct > 0 ? <span className="rounded-full bg-[var(--bb-berry)] px-3 py-1 text-xs font-black text-white">-{savingsPct}%</span> : null}
             </div>
 
-            <UrgencyBadge productId={product.id} stock={product.stock} />
+            <div className="mt-4 flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map(score => <Star key={score} size={15} className="fill-[#f5a623] text-[#f5a623]" />)}
+              <span className="text-xs font-bold text-[var(--bb-ink-soft)]">2,500+ happy customers</span>
+            </div>
 
-            {product.description && (
-              <p className="text-[#6B6B6B] text-sm leading-relaxed border-t border-[#EDE8E4] pt-5">
+            <div className="mt-5">
+              <UrgencyBadge productId={product.id} stock={product.stock} />
+            </div>
+
+            {product.description ? (
+              <p className="mt-5 border-t border-[rgba(155,43,71,0.08)] pt-5 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">
                 {product.description}
               </p>
-            )}
+            ) : null}
 
-            {product.needsShade && product.shades.length > 0 && (
-              <div className="border-t border-[#EDE8E4] pt-5">
-                <p className="text-sm font-semibold text-[#1A1A1A] mb-3">
-                  Choose Shade <span className="text-red-400">*</span>
-                  {selectedShade && <span className="text-[#9B2B47] ml-2 font-medium">- {selectedShade}</span>}
+            {product.needsShade && shades.length > 0 ? (
+              <div className="mt-6 border-t border-[rgba(155,43,71,0.08)] pt-5">
+                <p className="text-sm font-black text-[var(--bb-ink)]">
+                  Choose Shade {selectedShade ? <span className="text-[var(--bb-berry)]">- {selectedShade}</span> : null}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {product.shades.map(shade => (
+                <div className="bb-swatches mt-4">
+                  {shades.map(shade => (
                     <button
-                      key={shade.name}
+                      key={shade.id}
+                      className={`bb-swatch ${selectedShade === shade.name ? "is-active" : ""}`}
                       onClick={() => setSelectedShade(shade.name)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-                        selectedShade === shade.name
-                          ? "border-[#9B2B47] bg-[#F9ECF0] text-[#9B2B47]"
-                          : "border-[#EDE8E4] text-[#6B6B6B] hover:border-[#9B2B47]/40"
-                      }`}
+                      style={{ "--c": shade.hex } as React.CSSProperties}
                     >
-                      {shade.hex && <span className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: shade.hex }} />}
-                      {shade.name}
+                      <span className="bb-swatch-dot" />
+                      <span className="flex-1">
+                        <span className="bb-swatch-name">{shade.name}</span>
+                        <span className="bb-swatch-vibe">{shade.vibe}</span>
+                      </span>
+                      {selectedShade === shade.name ? <span className="grid h-7 w-7 place-items-center rounded-full text-white" style={{ background: shade.hex }}><Check size={14} /></span> : null}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
-            <div className="border-t border-[#EDE8E4] pt-5 flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-[#FAF7F4] rounded-full px-3 py-2 border border-[#EDE8E4]">
-                <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-7 h-7 rounded-full border border-[#EDE8E4] text-[#9B2B47] flex items-center justify-center hover:bg-[#9B2B47] hover:text-white hover:border-[#9B2B47] transition-all">
-                  <Minus size={11} />
-                </button>
-                <span className="font-bold text-[#1A1A1A] w-6 text-center">{qty}</span>
-                <button onClick={() => setQty(qty + 1)} className="w-7 h-7 rounded-full border border-[#EDE8E4] text-[#9B2B47] flex items-center justify-center hover:bg-[#9B2B47] hover:text-white hover:border-[#9B2B47] transition-all">
-                  <Plus size={11} />
-                </button>
-              </div>
-              <button onClick={handleAddToCart} className={`btn-ripple flex-1 py-3.5 rounded-full font-semibold text-base flex items-center justify-center gap-2 transition-all ${added ? "bg-green-600 text-white" : "bg-[#9B2B47] hover:bg-[#7D1E35] text-white active:scale-95"}`}>
-                {added ? <><CheckCircle size={17} /> Added to Cart</> : <><ShoppingBag size={17} /> Add to Cart - Rs. {(product.price * qty).toLocaleString()}</>}
-              </button>
-            </div>
-
-            <div className="border-t border-[#EDE8E4] pt-5 grid grid-cols-3 gap-4">
+            <div className="mt-6 grid grid-cols-3 gap-3 border-t border-[rgba(155,43,71,0.08)] pt-5">
               {[
-                { icon: <Leaf size={15} />, title: "100% Organic", sub: "Natural ingredients" },
-                { icon: <Truck size={15} />, title: "COD Delivery", sub: "Pay on arrival" },
-                { icon: <Package size={15} />, title: "Pakistan-wide", sub: "via PostEx" },
+                { icon: <Sparkles size={16} />, title: "Organic", sub: "Natural feel" },
+                { icon: <Truck size={16} />, title: "COD", sub: "Pay later" },
+                { icon: <Shield size={16} />, title: "PostEx", sub: "Tracked" },
               ].map(badge => (
-                <div key={badge.title} className="text-center">
-                  <div className="w-10 h-10 rounded-2xl bg-[#F9ECF0] flex items-center justify-center mx-auto mb-2 text-[#9B2B47]">
-                    {badge.icon}
-                  </div>
-                  <p className="text-xs font-semibold text-[#1A1A1A]">{badge.title}</p>
-                  <p className="text-[10px] text-[#6B6B6B] mt-0.5">{badge.sub}</p>
+                <div key={badge.title} className="rounded-2xl bg-white/55 p-3 text-center">
+                  <span className="mx-auto mb-2 grid h-9 w-9 place-items-center rounded-full bg-[rgba(155,43,71,0.08)] text-[var(--bb-berry)]">{badge.icon}</span>
+                  <p className="text-[11px] font-black">{badge.title}</p>
+                  <p className="text-[10px] font-semibold text-[var(--bb-ink-soft)]">{badge.sub}</p>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
         <FrequentlyBoughtTogether
           key={product.id}
@@ -178,21 +208,32 @@ export default function ProductDetailClient({ product, suggestions, deliveryChar
           suggestedProducts={suggestions}
         />
 
-        <div className="mt-10">
-          <div className="text-center mb-6">
-            <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#9B2B47]/60 mb-1">Social Proof</p>
-            <h2 className="font-serif font-bold text-2xl text-[#1A1A1A]">What Customers Say</h2>
+        <section className="bb-section px-0" id="reviews">
+          <div className="bb-section-head">
+            <span className="bb-eyebrow">Social Proof</span>
+            <h2 className="bb-section-title">What customers<br /><em>say.</em></h2>
           </div>
           <ReviewsSection productId={product.id} />
-        </div>
+        </section>
+      </main>
 
-        <div className="mt-8 text-center">
-          <Link href="/shop" className="inline-flex items-center gap-1 text-[#9B2B47] text-sm font-medium hover:underline underline-offset-2">
-            <ChevronLeft size={15} /> Back to Shop
-          </Link>
+      <div className="bb-sticky bb-glass">
+        <div className="bb-sticky-row">
+          <span className="bb-sticky-dot" style={{ background: activeShade?.hex ?? "var(--bb-berry)" }} />
+          <div className="min-w-0 flex-1">
+            <strong className="bb-serif block truncate text-xl leading-none">{selectedShade || product.name}</strong>
+            <span className="text-sm font-black text-[var(--bb-berry)]">Rs. {(product.price * qty).toLocaleString()}</span>
+          </div>
+          <div className="flex items-center rounded-full bg-white/60 p-1">
+            <button className="grid h-8 w-8 place-items-center rounded-full" onClick={() => setQty(Math.max(1, qty - 1))}><Minus size={13} /></button>
+            <span className="w-7 text-center text-sm font-black">{qty}</span>
+            <button className="grid h-8 w-8 place-items-center rounded-full" onClick={() => setQty(qty + 1)}><Plus size={13} /></button>
+          </div>
+          <button className={`bb-btn bb-btn-primary px-4 ${added ? "bg-green-600" : ""}`} onClick={handleAddToCart}>
+            {added ? <><Check size={17} /> Added</> : <><ShoppingBag size={17} /> Add</>}
+          </button>
         </div>
       </div>
     </div>
   );
 }
-

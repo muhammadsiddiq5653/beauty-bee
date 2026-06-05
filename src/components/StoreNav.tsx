@@ -17,33 +17,31 @@ export default function StoreNav() {
   }, []);
 
   return (
-    <header className="bg-white border-b border-[#EDE8E4] sticky top-0 z-40">
-      <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
-        {/* Logo */}
+    <header className="bb-nav">
+      <div className="bb-nav-inner bb-glass">
         <Link href="/" className="flex items-center">
           <Image src="/logo.svg" alt="Beauty Bee" width={110} height={44} priority unoptimized />
         </Link>
 
-        {/* Right actions */}
-        <nav className="flex items-center gap-5">
-          <Link href="/about" className="hidden sm:block text-xs text-[#6B6B6B] hover:text-[#9B2B47] transition-colors font-medium tracking-wide">
+        <nav className="flex items-center gap-4">
+          <Link href="/about" className="hidden text-xs font-black tracking-wide text-[var(--bb-ink-soft)] transition-colors hover:text-[var(--bb-berry)] sm:block">
             About
           </Link>
-          <Link href="/faq" className="hidden sm:block text-xs text-[#6B6B6B] hover:text-[#9B2B47] transition-colors font-medium tracking-wide">
+          <Link href="/faq" className="hidden text-xs font-black tracking-wide text-[var(--bb-ink-soft)] transition-colors hover:text-[var(--bb-berry)] sm:block">
             FAQ
           </Link>
-          <Link href="/track" className="flex items-center gap-1.5 text-xs text-[#6B6B6B] hover:text-[#9B2B47] transition-colors font-medium tracking-wide">
+          <Link href="/track" className="flex items-center gap-1.5 text-xs font-black tracking-wide text-[var(--bb-ink-soft)] transition-colors hover:text-[var(--bb-berry)]">
             <Package size={14} />
             Track
           </Link>
           <button
             onClick={openDrawer}
-            className="btn-ripple relative flex items-center gap-2 bg-[#9B2B47] hover:bg-[#7D1E35] transition-colors text-white px-4 py-2 rounded-full text-xs font-semibold"
+            className="bb-nav-cart"
+            aria-label="Open cart"
           >
             <ShoppingBag size={14} />
-            Cart
             {mounted && count > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-[#C9A84C] text-white text-[9px] font-bold w-4.5 h-4.5 min-w-[18px] min-h-[18px] rounded-full flex items-center justify-center shadow-sm">
+              <span className="bb-cart-badge">
                 {count > 9 ? "9+" : count}
               </span>
             )}

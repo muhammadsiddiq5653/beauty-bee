@@ -1,32 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, Truck, Shield, CheckCircle, RefreshCw, ShoppingBag, Package } from "lucide-react";
-import { useCartStore } from "@/store/cart";
-import StoreNav from "@/components/StoreNav";
+import Link from "next/link";
+import {
+  ArrowRight, Check, ChevronLeft, CreditCard,
+  Package, RefreshCw, Shield, ShoppingBag, Truck, X
+} from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
 import PromoCodeField from "@/components/PromoCodeField";
+import StoreNav from "@/components/StoreNav";
 import { trackEvent } from "@/lib/analytics";
+import { trackPixel, PIXEL_CURRENCY } from "@/lib/fbpixel";
+import { useCartStore } from "@/store/cart";
 
 const DELIVERY_DEFAULT = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 
 const FALLBACK_CITIES = [
-  "Abbottabad","Attock","Awaran","Badin","Bahawalnagar","Bahawalpur",
-  "Bannu","Batkhela","Bhakkar","Burewala","Chakwal","Charsadda",
-  "Chiniot","Chishtian","Dera Ghazi Khan","Dera Ismail Khan","Faisalabad",
-  "Fateh Jang","Ghotki","Gilgit","Gojra","Gujranwala","Gujrat",
-  "Hafizabad","Haripur","Hub","Hunza","Hyderabad","Islamabad",
-  "Jacobabad","Jhelum","Kamalia","Kamoke","Karachi","Kasur",
-  "Khanewal","Kharian","Khushab","Kohat","Kot Addu","Lahore",
-  "Larkana","Layyah","Lodhran","Mandi Bahauddin","Mansehra","Mardan",
-  "Mianwali","Mingora","Mirpur","Mirpur Khas","Multan","Muzaffarabad",
-  "Muzaffargarh","Nawabshah","Nowshera","Okara","Pakpattan","Peshawar",
-  "Quetta","Rahim Yar Khan","Rawalpindi","Sadiqabad","Sahiwal",
-  "Sargodha","Sheikhupura","Shikarpur","Sialkot","Sukkur","Swabi",
-  "Swat","Tando Adam","Tando Allahyar","Toba Tek Singh","Turbat",
-  "Umerkot","Vehari","Wah Cantt","Zhob",
+  "Abbottabad","Attock","Badin","Bahawalpur","Bannu","Chakwal",
+  "Dera Ghazi Khan","Faisalabad","Gujranwala","Gujrat","Hyderabad",
+  "Islamabad","Karachi","Lahore","Mardan","Multan","Peshawar",
+  "Quetta","Rawalpindi","Sahiwal","Sargodha","Sialkot","Sukkur",
 ].sort();
 
 type SuccessData = {
@@ -34,28 +28,24 @@ type SuccessData = {
   trackingNumber: string | null;
   total: number;
 };
+
 interface PromoResult {
-  code: string; label: string; discount: number; type: "percent" | "fixed"; value: number;
+  code: string;
+  label: string;
+  discount: number;
+  type: "percent" | "fixed";
+  value: number;
 }
 
-const inputClass = "w-full border border-[#EDE8E4] rounded-2xl px-4 py-3 text-sm bg-[#FAF7F4] focus:outline-none focus:border-[#9B2B47] transition-colors placeholder:text-[#6B6B6B]/50";
-const labelClass = "text-xs font-medium text-[#6B6B6B] block mb-1.5";
+function Mesh() {
+  return <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>;
+}
 
 export default function CheckoutPage() {
   const { items, subtotal, itemCount, clearCart } = useCartStore();
   const [promo, setPromo] = useState<PromoResult | null>(null);
   const [baseDelivery, setBaseDelivery] = useState(DELIVERY_DEFAULT);
   const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(0);
-  const discount = promo?.discount ?? 0;
-  const delivery = freeDeliveryThreshold > 0 && subtotal() >= freeDeliveryThreshold ? 0 : baseDelivery;
-  const finalTotal = Math.max(0, subtotal() + delivery - discount);
-
-  useEffect(() => {
-    fetch("/api/settings").then(r => r.json()).then(s => {
-      if (s.deliveryCharge) setBaseDelivery(s.deliveryCharge);
-      if (s.freeDeliveryThreshold) setFreeDeliveryThreshold(s.freeDeliveryThreshold);
-    }).catch(() => {});
-  }, []);
   const [cities, setCities] = useState<string[]>(FALLBACK_CITIES);
   const [form, setForm] = useState({
     customerName: "",
@@ -70,9 +60,29 @@ export default function CheckoutPage() {
   const [success, setSuccess] = useState<SuccessData | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
 
+  const sub = subtotal();
+  const discount = promo?.discount ?? 0;
+  const delivery = freeDeliveryThreshold > 0 && sub >= freeDeliveryThreshold ? 0 : baseDelivery;
+  const finalTotal = Math.max(0, sub + delivery - discount);
+
   useEffect(() => {
     trackEvent("checkout_view", { items: itemCount(), subtotal: subtotal() });
-  }, [itemCount, subtotal]);
+    trackPixel("InitiateCheckout", {
+      content_ids: items.map(i => i.productId),
+      content_type: "product",
+      num_items: itemCount(),
+      value: subtotal(),
+      currency: PIXEL_CURRENCY,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(s => {
+      if (s.deliveryCharge) setBaseDelivery(s.deliveryCharge);
+      if (s.freeDeliveryThreshold) setFreeDeliveryThreshold(s.freeDeliveryThreshold);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/postex/cities")
@@ -108,7 +118,8 @@ export default function CheckoutPage() {
       trackEvent("checkout_validation_error", { message: err, step });
       return;
     }
-    setError(""); setLoading(true);
+    setError("");
+    setLoading(true);
     const orderItems = items.map(i => ({ productId: i.productId, isBundle: i.isBundle, key: i.key, name: i.name, qty: i.qty, shade: i.shade }));
     try {
       const startedAt = performance.now();
@@ -131,6 +142,13 @@ export default function CheckoutPage() {
         durationMs: Math.round(performance.now() - startedAt),
         total: data.total,
       });
+      trackPixel("Purchase", {
+        content_ids: items.map(i => i.productId),
+        content_type: "product",
+        num_items: itemCount(),
+        value: data.total,
+        currency: PIXEL_CURRENCY,
+      });
       clearCart();
     } catch (e: unknown) {
       trackEvent("checkout_error", {
@@ -143,261 +161,206 @@ export default function CheckoutPage() {
     }
   }
 
-  // ── Success ───────────────────────────────────────────────────────
   if (success) {
     return (
-      <div className="min-h-screen bg-[#FAF7F4]">
-        <StoreNav /><CartDrawer />
-        <div className="max-w-lg mx-auto px-5 py-12">
-          <div className="bg-white rounded-3xl border border-[#EDE8E4] p-8 text-center">
-            <div className="w-16 h-16 bg-green-50 border border-green-200 rounded-full flex items-center justify-center mx-auto mb-5">
-              <CheckCircle size={32} className="text-green-500" />
-            </div>
-            <h1 className="font-serif font-bold text-2xl text-[#1A1A1A] mb-2">Order Placed!</h1>
-            <p className="text-[#6B6B6B] text-sm mb-7 leading-relaxed">
-              Your order is confirmed and being processed.<br />
-              A confirmation email with your order details has been sent to you.
+      <div className="bb-page">
+        <Mesh />
+        <StoreNav />
+        <CartDrawer />
+        <main className="bb-shell px-5 py-10">
+          <div className="bb-glass rounded-[28px] p-8 text-center">
+            <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-green-500 text-white">
+              <Check size={42} />
+            </span>
+            <h1 className="bb-serif mt-6 text-5xl leading-none">Order Confirmed!</h1>
+            <p className="mt-3 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">
+              Your order is confirmed. A confirmation email with your order details has been sent to you.
             </p>
-
-            <div className="space-y-3 mb-7">
-              <div className="bg-[#F9ECF0] rounded-2xl p-4 border border-[#EDE8E4]">
-                <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">Order Reference</p>
-                <p className="font-serif font-bold text-[#9B2B47] text-xl">{success.refNumber}</p>
+            <div className="mt-7 grid gap-3">
+              <div className="rounded-2xl bg-white/60 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--bb-ink-soft)]">Order Reference</p>
+                <p className="bb-serif text-2xl text-[var(--bb-berry)]">{success.refNumber}</p>
               </div>
-              {success.trackingNumber && (
-                <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                  <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">PostEx Tracking</p>
-                  <p className="font-bold text-blue-700 text-lg">{success.trackingNumber}</p>
-                  <p className="text-xs text-[#6B6B6B] mt-1">Track at postex.pk</p>
+              {success.trackingNumber ? (
+                <div className="rounded-2xl bg-white/60 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--bb-ink-soft)]">PostEx Tracking</p>
+                  <p className="font-black text-blue-700">{success.trackingNumber}</p>
                 </div>
-              )}
-              <div className="bg-[#FAF7F4] rounded-2xl p-4 border border-[#EDE8E4]">
-                <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">Amount to Pay on Delivery</p>
-                <p className="font-serif font-bold text-[#9B2B47] text-2xl">Rs. {success.total.toLocaleString()}</p>
+              ) : null}
+              <div className="rounded-2xl bg-white/60 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--bb-ink-soft)]">Amount to pay on delivery</p>
+                <p className="bb-serif text-3xl text-[var(--bb-berry)]">Rs. {success.total.toLocaleString()}</p>
               </div>
             </div>
-
-            <div className="flex flex-col gap-3">
-              <Link href="/track"
-                className="btn-ripple w-full bg-[#9B2B47] hover:bg-[#7D1E35] text-white rounded-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2 transition-colors">
-                <Truck size={15} /> Track My Order
-              </Link>
-              <Link href="/shop"
-                className="w-full bg-[#FAF7F4] border border-[#EDE8E4] text-[#6B6B6B] hover:text-[#9B2B47] rounded-full py-3 font-medium text-center text-sm transition-colors">
-                Continue Shopping
-              </Link>
-            </div>
+            <Link href="/track" className="bb-btn bb-btn-primary mt-7 w-full">
+              Track My Order <ArrowRight size={18} />
+            </Link>
+            <Link href="/shop" className="bb-btn bb-btn-ghost mt-3 w-full">Continue shopping</Link>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
-  // ── Empty cart ────────────────────────────────────────────────────
   if (itemCount() === 0) {
     return (
-      <div className="min-h-screen bg-[#FAF7F4]">
-        <StoreNav /><CartDrawer />
-        <div className="max-w-lg mx-auto px-5 py-20 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#F9ECF0] rounded-2xl mb-4">
-            <ShoppingBag size={28} className="text-[#9B2B47]" />
+      <div className="bb-page">
+        <Mesh />
+        <StoreNav />
+        <CartDrawer />
+        <main className="bb-shell grid min-h-[70svh] place-items-center px-5 text-center">
+          <div className="bb-glass rounded-[28px] p-8">
+            <ShoppingBag className="mx-auto text-[var(--bb-berry)]" size={48} />
+            <h1 className="bb-serif mt-5 text-4xl">Your cart is empty</h1>
+            <p className="mt-2 text-sm font-semibold text-[var(--bb-ink-soft)]">Add your favorite Beauty Bee products before checkout.</p>
+            <Link href="/shop" className="bb-btn bb-btn-primary mt-6">Shop now</Link>
           </div>
-          <h1 className="font-serif font-bold text-xl text-[#1A1A1A] mb-2">Your cart is empty</h1>
-          <p className="text-[#6B6B6B] text-sm mb-6">Add some products before checking out</p>
-          <Link href="/shop"
-            className="inline-flex items-center gap-2 bg-[#9B2B47] hover:bg-[#7D1E35] text-white px-8 py-3 rounded-full font-semibold text-sm transition-colors">
-            <Package size={15} /> Shop Now
-          </Link>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F4]">
+    <div className="bb-page">
+      <Mesh />
       <StoreNav />
       <CartDrawer />
 
-      <div className="max-w-lg mx-auto px-5 py-6 pb-16">
-        <Link href="/shop" className="inline-flex items-center gap-1 text-[#6B6B6B] hover:text-[#9B2B47] text-sm font-medium mb-5 transition-colors">
-          <ChevronLeft size={15} /> Back to Shop
+      <main className="bb-shell px-5 py-6 pb-16">
+        <Link href="/shop" className="mb-5 inline-flex items-center gap-1 text-sm font-black text-[var(--bb-ink-soft)] hover:text-[var(--bb-berry)]">
+          <ChevronLeft size={16} /> Back to shop
         </Link>
 
-        <h1 className="font-serif font-bold text-2xl text-[#1A1A1A] mb-6">Checkout</h1>
+        <div className="bb-section-head mb-5">
+          <span className="bb-eyebrow">Cash on Delivery</span>
+          <h1 className="bb-section-title">Beauty Bee<br /><em>checkout.</em></h1>
+        </div>
 
-        {/* Step indicators */}
-        <div className="flex items-center gap-2 mb-7">
-          {(["Order Review", "Your Details"] as const).map((s, i) => (
-            <button key={s} onClick={() => setStep((i + 1) as 1 | 2)}
-              className={`flex-1 py-2.5 rounded-full text-xs font-semibold transition-all border ${
-                step === i + 1
-                  ? "bg-[#9B2B47] text-white border-[#9B2B47]"
-                  : "bg-white text-[#6B6B6B] border-[#EDE8E4] hover:border-[#9B2B47]/30"
-              }`}>
-              {i + 1}. {s}
+        <div className="mb-5 flex items-center justify-center gap-0">
+          {[1, 2].map(n => (
+            <button
+              key={n}
+              onClick={() => setStep(n as 1 | 2)}
+              className={`grid h-10 w-10 place-items-center rounded-full text-sm font-black ${step >= n ? "bg-[var(--bb-berry)] text-white" : "bg-white/60 text-[var(--bb-ink-soft)]"}`}
+            >
+              {n}
             </button>
           ))}
         </div>
 
-        {/* ── Step 1: Order Review ── */}
-        {step === 1 && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-3xl border border-[#EDE8E4] overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#EDE8E4]">
-                <h2 className="font-serif font-bold text-[#1A1A1A]">Your Order ({itemCount()} {itemCount() === 1 ? "item" : "items"})</h2>
-              </div>
-              <div className="divide-y divide-[#EDE8E4]">
+        {step === 1 ? (
+          <div className="grid gap-4">
+            <section className="bb-glass rounded-[26px] p-5">
+              <h2 className="bb-serif text-2xl">Your order ({itemCount()} items)</h2>
+              <div className="mt-4 grid gap-3">
                 {items.map(item => (
-                  <div key={item.key} className="flex items-center gap-3 px-5 py-4">
-                    <div className="w-12 h-12 bg-[#F2EDE8] rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {item.imageUrl
-                        ? <Image src={item.imageUrl} alt={item.name} width={48} height={48} className="object-cover w-full h-full rounded-2xl" />
-                        : <span className="text-2xl">{item.emoji ?? "🛍️"}</span>
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-[#1A1A1A] text-sm truncate">{item.name}</p>
-                      {item.shade && <p className="text-xs text-[#6B6B6B]">{item.shade}</p>}
-                      <p className="text-xs text-[#6B6B6B]">Qty: {item.qty} × Rs. {item.unitPrice.toLocaleString()}</p>
-                    </div>
-                    <p className="font-semibold text-[#9B2B47] text-sm flex-shrink-0">
-                      Rs. {(item.qty * item.unitPrice).toLocaleString()}
-                    </p>
+                  <div key={item.key} className="flex items-center gap-3 rounded-2xl bg-white/60 p-3">
+                    <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-xl bg-[var(--bb-cream-deep)] text-2xl">
+                      {item.imageUrl ? <Image src={item.imageUrl} alt={item.name} width={56} height={56} className="h-full w-full object-cover" /> : item.emoji ?? <Package size={18} />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <strong className="block truncate text-sm">{item.name}</strong>
+                      <span className="text-xs font-semibold text-[var(--bb-ink-soft)]">Qty {item.qty} x Rs. {item.unitPrice.toLocaleString()}</span>
+                    </span>
+                    <strong className="bb-serif text-lg text-[var(--bb-berry)]">Rs. {(item.qty * item.unitPrice).toLocaleString()}</strong>
                   </div>
                 ))}
               </div>
-              <div className="px-5 py-4 bg-[#FAF7F4] space-y-2 border-t border-[#EDE8E4]">
-                <div className="flex justify-between text-sm text-[#6B6B6B]">
-                  <span>Subtotal</span><span>Rs. {subtotal().toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm text-[#6B6B6B]">
-                  <span>Delivery (PostEx)</span><span>Rs. {delivery}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600 font-medium">
-                    <span>Promo ({promo?.code})</span><span>−Rs. {discount.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-[#9B2B47] text-base border-t border-[#EDE8E4] pt-2">
-                  <span>Total (COD)</span><span>Rs. {finalTotal.toLocaleString()}</span>
+              <div className="mt-5 space-y-2 border-t border-[rgba(155,43,71,0.08)] pt-4 text-sm font-semibold text-[var(--bb-ink-soft)]">
+                <div className="flex justify-between"><span>Subtotal</span><span>Rs. {sub.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>Delivery</span><span>{delivery === 0 ? "FREE" : `Rs. ${delivery.toLocaleString()}`}</span></div>
+                {discount > 0 ? <div className="flex justify-between text-green-600"><span>Promo ({promo?.code})</span><span>-Rs. {discount.toLocaleString()}</span></div> : null}
+                <div className="flex justify-between border-t border-[rgba(155,43,71,0.08)] pt-3 text-[var(--bb-ink)]">
+                  <span>Total COD</span>
+                  <span className="bb-serif text-2xl text-[var(--bb-berry)]">Rs. {finalTotal.toLocaleString()}</span>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="bg-white rounded-3xl border border-[#EDE8E4] p-5">
-              <p className="text-xs font-medium text-[#6B6B6B] mb-3">Have a promo code?</p>
-              <PromoCodeField subtotal={subtotal()} items={items} onApply={setPromo} applied={promo} />
-            </div>
+            <section className="bb-glass rounded-[26px] p-5">
+              <p className="mb-3 text-xs font-black uppercase tracking-[0.12em] text-[var(--bb-ink-soft)]">Have a promo code?</p>
+              <PromoCodeField subtotal={sub} items={items} onApply={setPromo} applied={promo} />
+            </section>
 
-            <div className="bg-[#FAF7F4] border border-[#EDE8E4] rounded-3xl p-4 flex items-start gap-3">
-              <Shield size={16} className="text-[#9B2B47] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-[#1A1A1A] text-sm">Cash on Delivery</p>
-                <p className="text-xs text-[#6B6B6B] mt-0.5">Pay Rs. {finalTotal.toLocaleString()} when your order arrives. No prepayment needed.</p>
+            <section className="bb-glass rounded-[22px] p-4">
+              <div className="flex items-start gap-3">
+                <CreditCard className="mt-0.5 text-[var(--bb-berry)]" size={18} />
+                <div>
+                  <p className="font-black">Cash on Delivery</p>
+                  <p className="mt-1 text-xs font-semibold leading-relaxed text-[var(--bb-ink-soft)]">Pay Rs. {finalTotal.toLocaleString()} when your order arrives. No prepayment needed.</p>
+                </div>
               </div>
-            </div>
+            </section>
 
-            <button onClick={() => setStep(2)}
-              className="btn-ripple w-full py-4 bg-[#9B2B47] hover:bg-[#7D1E35] text-white rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2">
-              Continue to Details →
+            <button onClick={() => setStep(2)} className="bb-btn bb-btn-primary w-full">
+              Continue to details <ArrowRight size={18} />
             </button>
           </div>
-        )}
+        ) : (
+          <div className="grid gap-4">
+            <section className="bb-glass rounded-[26px] p-5">
+              <h2 className="bb-serif text-2xl">Delivery details</h2>
+              {error ? (
+                <div className="mt-4 flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
+                  <X size={15} /> {error}
+                </div>
+              ) : null}
 
-        {/* ── Step 2: Customer Details ── */}
-        {step === 2 && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-3xl border border-[#EDE8E4] p-5 space-y-4">
-              <h2 className="font-serif font-bold text-lg text-[#1A1A1A]">Delivery Details</h2>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-600 flex items-center gap-2">
-                  <Shield size={13} /> {error}
+              <div className="mt-5 grid gap-4">
+                <div className="bb-form-field">
+                  <label>Full Name *</label>
+                  <input className="bb-input" value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} placeholder="e.g. Fatima Ahmed" />
                 </div>
-              )}
-
-              <div className="space-y-4">
-                <div>
-                  <label className={labelClass}>Full Name *</label>
-                  <input type="text" placeholder="e.g. Fatima Ahmed"
-                    value={form.customerName}
-                    onChange={e => setForm({ ...form, customerName: e.target.value })}
-                    className={inputClass} />
+                <div className="bb-form-field">
+                  <label>Phone Number *</label>
+                  <input className="bb-input" type="tel" maxLength={11} value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} placeholder="03XXXXXXXXX" />
                 </div>
-                <div>
-                  <label className={labelClass}>Phone Number *</label>
-                  <input type="tel" placeholder="03XXXXXXXXX" maxLength={11}
-                    value={form.customerPhone}
-                    onChange={e => setForm({ ...form, customerPhone: e.target.value })}
-                    className={inputClass} />
-                  <p className="text-[11px] text-[#6B6B6B] mt-1">11 digits starting with 03</p>
+                <div className="bb-form-field">
+                  <label>Email Address *</label>
+                  <input className="bb-input" type="email" value={form.customerEmail} onChange={e => setForm({ ...form, customerEmail: e.target.value })} placeholder="fatima@gmail.com" />
                 </div>
-                <div>
-                  <label className={labelClass}>Email Address * <span className="text-[#6B6B6B]/60">(order confirmation sent here)</span></label>
-                  <input type="email" placeholder="e.g. fatima@gmail.com"
-                    value={form.customerEmail}
-                    onChange={e => setForm({ ...form, customerEmail: e.target.value })}
-                    className={inputClass} />
-                </div>
-                <div>
-                  <label className={labelClass}>Delivery Address *</label>
-                  <textarea placeholder="House No., Street, Area..."
-                    value={form.deliveryAddress}
-                    onChange={e => setForm({ ...form, deliveryAddress: e.target.value })}
-                    rows={2}
-                    className={`${inputClass} resize-none`} />
+                <div className="bb-form-field">
+                  <label>Delivery Address *</label>
+                  <textarea className="bb-input min-h-24 resize-none" value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })} placeholder="House No., street, area, landmark..." />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>City *</label>
-                    <select value={form.cityName} onChange={e => setForm({ ...form, cityName: e.target.value })}
-                      className={inputClass}>
-                      <option value="">Select city...</option>
-                      {cities.map(c => <option key={c} value={c}>{c}</option>)}
+                  <div className="bb-form-field">
+                    <label>City *</label>
+                    <select className="bb-input" value={form.cityName} onChange={e => setForm({ ...form, cityName: e.target.value })}>
+                      <option value="">Select city</option>
+                      {cities.map(city => <option key={city} value={city}>{city}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className={labelClass}>Payment</label>
-                    <div className={`${inputClass} text-[#6B6B6B]`}>Cash on Delivery</div>
+                  <div className="bb-form-field">
+                    <label>Payment</label>
+                    <div className="bb-input text-[var(--bb-ink-soft)]">COD</div>
                   </div>
                 </div>
-                <div>
-                  <label className={labelClass}>Special Instructions (optional)</label>
-                  <input type="text" placeholder="e.g. Call before delivery"
-                    value={form.transactionNotes}
-                    onChange={e => setForm({ ...form, transactionNotes: e.target.value })}
-                    className={inputClass} />
+                <div className="bb-form-field">
+                  <label>Special Instructions</label>
+                  <input className="bb-input" value={form.transactionNotes} onChange={e => setForm({ ...form, transactionNotes: e.target.value })} placeholder="Call before delivery" />
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Mini order summary */}
-            <div className="bg-white border border-[#EDE8E4] rounded-3xl px-5 py-4 flex justify-between items-center">
-              <div>
-                <p className="text-xs text-[#6B6B6B]">
-                  {itemCount()} {itemCount() === 1 ? "item" : "items"} · Cash on Delivery
-                  {discount > 0 && <span className="text-green-600"> · −Rs. {discount.toLocaleString()} off</span>}
-                </p>
-                <p className="font-serif font-bold text-[#9B2B47] text-lg">Rs. {finalTotal.toLocaleString()}</p>
+            <section className="bb-glass rounded-[22px] p-4">
+              <div className="flex items-center gap-3">
+                <Shield className="text-[var(--bb-berry)]" size={18} />
+                <div className="flex-1">
+                  <p className="text-sm font-black">PostEx tracked delivery</p>
+                  <p className="text-xs font-semibold text-[var(--bb-ink-soft)]">Confirmation email sent after purchase.</p>
+                </div>
+                <Truck className="text-[var(--bb-berry)]" size={18} />
               </div>
-              <button onClick={() => setStep(1)} className="text-xs text-[#9B2B47] font-medium hover:underline underline-offset-2">
-                Edit order
-              </button>
-            </div>
+            </section>
 
-            <button onClick={placeOrder} disabled={loading}
-              className="btn-ripple w-full py-4 bg-[#9B2B47] hover:bg-[#7D1E35] text-white rounded-full font-semibold text-sm disabled:opacity-60 flex items-center justify-center gap-2 transition-colors">
-              {loading
-                ? <><RefreshCw size={16} className="animate-spin" /> Placing Order...</>
-                : <>Place Order — Rs. {finalTotal.toLocaleString()}</>
-              }
+            <button onClick={placeOrder} disabled={loading} className="bb-btn bb-btn-primary w-full disabled:opacity-60">
+              {loading ? <><RefreshCw className="animate-spin" size={18} /> Placing order...</> : <>Place order - Rs. {finalTotal.toLocaleString()}</>}
             </button>
-            <p className="text-center text-xs text-[#6B6B6B]">
-              Confirmation email sent · PostEx tracking generated automatically
-            </p>
+            <button onClick={() => setStep(1)} className="py-2 text-sm font-black text-[var(--bb-ink-soft)]">Edit order</button>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

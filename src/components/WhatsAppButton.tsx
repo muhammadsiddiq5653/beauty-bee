@@ -1,77 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "923080014581";
-const WA_MESSAGE = "Hi Beauty Bee! I'd like to know more about your products 🌸";
+const WA_MESSAGE = "Hi Beauty Bee! I would like to know more about your products.";
 
 export default function WhatsAppButton() {
-  const [visible, setVisible] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-
-  // Appear after 3 seconds
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 3000);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Show tooltip pulse after button appears
-  useEffect(() => {
-    if (!visible || dismissed) return;
-    const t = setTimeout(() => {
-      setShowTooltip(true);
-      // Auto-hide tooltip after 5s
-      setTimeout(() => setShowTooltip(false), 5000);
-    }, 800);
-    return () => clearTimeout(t);
-  }, [visible, dismissed]);
-
   const href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(WA_MESSAGE)}`;
 
-  if (!visible) return null;
-
   return (
-    <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-2">
-      {/* Tooltip bubble */}
-      {showTooltip && !dismissed && (
-        <div className="relative bg-white rounded-2xl shadow-xl border border-green-100 px-4 py-3 max-w-[180px] animate-bounce-in">
-          <button
-            onClick={() => { setShowTooltip(false); setDismissed(true); }}
-            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-[10px] hover:bg-gray-300 transition-colors"
-            aria-label="Dismiss"
-          >
-            ✕
-          </button>
-          <p className="text-xs font-bold text-gray-800 leading-snug">👋 Have questions?</p>
-          <p className="text-[11px] text-gray-500 mt-0.5">Chat with us on WhatsApp!</p>
-          {/* Arrow */}
-          <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-b border-r border-green-100 rotate-45" />
-        </div>
-      )}
-
-      {/* Main button */}
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Chat on WhatsApp"
-        className="group relative w-14 h-14 bg-[#25D366] rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300 hover:shadow-green-400/40 hover:shadow-xl"
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setTimeout(() => setShowTooltip(false), 200)}
-      >
-        {/* Pulse ring */}
-        <span className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-30" />
-        {/* WhatsApp SVG */}
-        <svg
-          className="w-7 h-7 text-white relative z-10"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-        </svg>
-      </a>
-    </div>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Chat on WhatsApp"
+      className="bb-whatsapp"
+    >
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm0 18.15c-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.24-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.69 8.23-8.23 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.15.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28Z" />
+      </svg>
+    </a>
   );
 }

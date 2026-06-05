@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Search, Package, CheckCircle, Truck, RotateCcw, Clock, AlertCircle } from "lucide-react";
-import StoreNav from "@/components/StoreNav";
+import { AlertCircle, CheckCircle, ChevronLeft, Clock, Package, RotateCcw, Search, Truck } from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
+import StoreNav from "@/components/StoreNav";
 
 interface TrackResult {
   tracking: string;
@@ -28,6 +28,10 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   "0013": <Clock className="text-orange-400" size={18} />,
 };
 
+function Mesh() {
+  return <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>;
+}
+
 export default function TrackPage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,8 +39,13 @@ export default function TrackPage() {
   const [error, setError] = useState("");
 
   async function handleTrack() {
-    if (!query.trim()) { setError("Please enter a tracking number or order reference."); return; }
-    setError(""); setLoading(true); setResult(null);
+    if (!query.trim()) {
+      setError("Please enter a tracking number or order reference.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    setResult(null);
     try {
       const res = await fetch(`/api/postex/track?tracking=${encodeURIComponent(query.trim())}`);
       const data = await res.json();
@@ -44,144 +53,115 @@ export default function TrackPage() {
       setResult(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not find tracking information.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F4]">
+    <div className="bb-page">
+      <Mesh />
       <StoreNav />
       <CartDrawer />
 
-      {/* Page header */}
-      <div className="border-b border-[#EDE8E4] bg-white">
-        <div className="max-w-lg mx-auto px-5 py-5 flex items-center gap-3">
-          <Link href="/shop" className="text-[#6B6B6B] hover:text-[#9B2B47] transition-colors">
-            <ChevronLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="font-serif font-bold text-xl text-[#1A1A1A] leading-none">Track Your Order</h1>
-            <p className="text-xs text-[#6B6B6B] mt-0.5">Beauty Bee · PostEx Tracking</p>
-          </div>
+      <main className="bb-shell px-5 py-6 pb-16">
+        <Link href="/shop" className="mb-6 inline-flex items-center gap-1 text-sm font-black text-[var(--bb-ink-soft)] hover:text-[var(--bb-berry)]">
+          <ChevronLeft size={16} /> Back to shop
+        </Link>
+
+        <div className="bb-section-head">
+          <span className="bb-eyebrow">PostEx Tracking</span>
+          <h1 className="bb-section-title">Track your<br /><em>order.</em></h1>
+          <p className="bb-section-sub">Use your PostEx tracking number or Beauty Bee reference.</p>
         </div>
-      </div>
 
-      <div className="max-w-lg mx-auto px-5 pt-8 pb-16 space-y-4">
-
-        {/* Search box */}
-        <div className="bg-white rounded-3xl border border-[#EDE8E4] p-6">
-          <h2 className="font-serif font-bold text-lg text-[#1A1A1A] mb-1">Enter your tracking number</h2>
-          <p className="text-xs text-[#6B6B6B] mb-5 leading-relaxed">
-            Your PostEx tracking number (starts with CX) or Beauty Bee order ref (starts with BB-)
-          </p>
+        <section className="bb-glass rounded-[28px] p-6">
           <div className="flex gap-2">
             <input
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleTrack()}
-              placeholder="e.g. CX-XXXXXXXXXXXX or BB-12345678"
-              className="flex-1 border border-[#EDE8E4] rounded-2xl px-4 py-3 text-sm bg-[#FAF7F4] focus:outline-none focus:border-[#9B2B47] transition-colors placeholder:text-[#6B6B6B]/50"
+              placeholder="CX-XXXXXXXXXXXX or BB-12345678"
+              className="bb-input flex-1"
             />
-            <button
-              onClick={handleTrack}
-              disabled={loading}
-              className="btn-ripple bg-[#9B2B47] hover:bg-[#7D1E35] text-white rounded-2xl px-5 py-3 font-semibold text-sm flex items-center gap-2 transition-colors disabled:opacity-60"
-            >
-              {loading
-                ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                : <Search size={15} />
-              }
-              Track
+            <button onClick={handleTrack} disabled={loading} className="bb-btn bb-btn-primary px-5 disabled:opacity-60">
+              {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Search size={17} />}
             </button>
           </div>
-          {error && (
-            <p className="text-red-500 text-xs mt-3 flex items-center gap-1.5">
-              <AlertCircle size={12} /> {error}
+          {error ? (
+            <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-red-500">
+              <AlertCircle size={13} /> {error}
             </p>
-          )}
-        </div>
+          ) : null}
+        </section>
 
-        {/* Result */}
-        {result && (
-          <div className="bg-white rounded-3xl border border-[#EDE8E4] overflow-hidden">
-            {/* Result header */}
-            <div className="bg-[#9B2B47] p-5 text-white">
-              <p className="text-xs text-white/60 mb-1 tracking-wide uppercase">Tracking Number</p>
-              <p className="font-mono font-bold text-lg">{result.tracking}</p>
-              <p className="text-xs text-white/60 mt-1">Ref: {result.orderRefNumber}</p>
+        {result ? (
+          <section className="bb-glass mt-5 overflow-hidden rounded-[28px]">
+            <div className="bg-[var(--bb-berry)] p-6 text-white">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-white/65">Tracking Number</p>
+              <p className="mt-1 font-mono text-xl font-black">{result.tracking}</p>
+              <p className="mt-1 text-xs font-semibold text-white/70">Ref: {result.orderRefNumber}</p>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="grid gap-4 p-5">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#FAF7F4] rounded-2xl p-3 border border-[#EDE8E4]">
-                  <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">Customer</p>
-                  <p className="font-semibold text-[#1A1A1A] text-sm">{result.customerName}</p>
+                <div className="rounded-2xl bg-white/60 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--bb-ink-soft)]">Customer</p>
+                  <p className="mt-1 text-sm font-black">{result.customerName}</p>
                 </div>
-                <div className="bg-[#FAF7F4] rounded-2xl p-3 border border-[#EDE8E4]">
-                  <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">City</p>
-                  <p className="font-semibold text-[#1A1A1A] text-sm">{result.cityName}</p>
+                <div className="rounded-2xl bg-white/60 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--bb-ink-soft)]">City</p>
+                  <p className="mt-1 text-sm font-black">{result.cityName}</p>
                 </div>
               </div>
 
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
-                {STATUS_ICONS[result.history?.[result.history.length - 1]?.code] ?? <Package size={18} className="text-[#6B6B6B]" />}
+              <div className="flex items-center gap-3 rounded-2xl border border-green-200 bg-green-50 p-4">
+                {STATUS_ICONS[result.history?.[result.history.length - 1]?.code] ?? <Package size={18} className="text-[var(--bb-ink-soft)]" />}
                 <div>
-                  <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">Current Status</p>
-                  <p className="font-semibold text-green-700 text-sm">{result.latestStatus}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--bb-ink-soft)]">Current Status</p>
+                  <p className="text-sm font-black text-green-700">{result.latestStatus}</p>
                 </div>
               </div>
 
-              <div className="bg-[#FAF7F4] border border-[#EDE8E4] rounded-2xl p-4">
-                <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide mb-1">Amount (Cash on Delivery)</p>
-                <p className="font-serif font-bold text-[#9B2B47] text-2xl">Rs. {result.invoicePayment.toLocaleString()}</p>
+              <div className="rounded-2xl bg-white/60 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--bb-ink-soft)]">Cash on Delivery</p>
+                <p className="bb-serif mt-1 text-3xl text-[var(--bb-berry)]">Rs. {result.invoicePayment.toLocaleString()}</p>
               </div>
 
-              {result.history?.length > 0 && (
+              {result.history?.length > 0 ? (
                 <div>
-                  <h3 className="font-serif font-bold text-[#1A1A1A] mb-4">Order Journey</h3>
+                  <h2 className="bb-serif mb-4 text-2xl">Order journey</h2>
                   <div className="space-y-3">
-                    {[...result.history].reverse().map((h, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="flex flex-col items-center pt-0.5">
-                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${i === 0 ? "bg-[#9B2B47]" : "bg-[#EDE8E4]"}`} />
-                          {i < result.history.length - 1 && (
-                            <div className="w-px h-6 bg-[#EDE8E4] mt-1" />
-                          )}
+                    {[...result.history].reverse().map((item, index) => (
+                      <div key={`${item.code}-${index}`} className="flex items-start gap-3">
+                        <div className="flex flex-col items-center pt-1">
+                          <span className={`h-3 w-3 rounded-full ${index === 0 ? "bg-[var(--bb-berry)]" : "bg-[rgba(155,43,71,0.15)]"}`} />
+                          {index < result.history.length - 1 ? <span className="mt-1 h-7 w-px bg-[rgba(155,43,71,0.12)]" /> : null}
                         </div>
-                        <p className={`text-sm pb-1 ${i === 0 ? "font-semibold text-[#1A1A1A]" : "text-[#6B6B6B]"}`}>
-                          {h.message}
+                        <p className={`text-sm leading-relaxed ${index === 0 ? "font-black text-[var(--bb-ink)]" : "font-semibold text-[var(--bb-ink-soft)]"}`}>
+                          {item.message}
                         </p>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!result && !loading && (
-          <div className="bg-white rounded-3xl border border-[#EDE8E4] p-8 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-[#F9ECF0] rounded-2xl mb-4">
-              <Package size={24} className="text-[#9B2B47]" />
-            </div>
-            <h3 className="font-serif font-bold text-lg text-[#1A1A1A] mb-2">Need help with your order?</h3>
-            <p className="text-sm text-[#6B6B6B] mb-6 leading-relaxed max-w-xs mx-auto">
-              Enter your PostEx tracking number above. You can find it in your WhatsApp order confirmation.
+          </section>
+        ) : !loading ? (
+          <section className="bb-glass mt-5 rounded-[28px] p-8 text-center">
+            <Package className="mx-auto text-[var(--bb-berry)]" size={44} />
+            <h2 className="bb-serif mt-4 text-3xl">Need help with your order?</h2>
+            <p className="mx-auto mt-2 max-w-xs text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">
+              Your tracking number is sent after checkout. You can also message us on WhatsApp for help.
             </p>
-            <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full font-semibold text-sm transition-colors"
-            >
-              💬 Contact Beauty Bee
+            <a href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" className="bb-btn bb-btn-ghost mt-6">
+              Contact Beauty Bee
             </a>
-          </div>
-        )}
-
-      </div>
+          </section>
+        ) : null}
+      </main>
     </div>
   );
 }

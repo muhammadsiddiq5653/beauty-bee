@@ -1,261 +1,115 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Heart, Leaf, Star, Shield, Package } from "lucide-react";
-import StoreNav from "@/components/StoreNav";
+import { ArrowRight, Check, Heart, Leaf, Package, Shield, Sparkles, Star } from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
+import StoreNav from "@/components/StoreNav";
 import WhatsAppButton from "@/components/WhatsAppButton";
 
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.1 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return { ref, visible };
-}
-
-function RevealSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  const { ref, visible } = useReveal();
-  return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
-  );
-}
-
 const VALUES = [
-  {
-    emoji: "🌿",
-    title: "100% Organic",
-    desc: "Every ingredient we use is sourced from nature — no parabens, no sulphates, no harsh chemicals. Just pure, effective botanicals.",
-    color: "from-green-50 to-emerald-50 border-green-100",
-    iconColor: "text-green-600",
-  },
-  {
-    emoji: "💕",
-    title: "Made for Pakistani Women",
-    desc: "Our formulations are designed for the Pakistani climate — humid summers, dry winters, and every skin tone in between.",
-    color: "from-pink-50 to-rose-50 border-pink-100",
-    iconColor: "text-pink-600",
-  },
-  {
-    emoji: "🐝",
-    title: "Cruelty Free",
-    desc: "We love all creatures. Beauty Bee products are never tested on animals — only on willing human volunteers who rave about the results.",
-    color: "from-amber-50 to-yellow-50 border-amber-100",
-    iconColor: "text-amber-600",
-  },
-  {
-    emoji: "🤝",
-    title: "Community First",
-    desc: "We work with local artisans and farmers across Pakistan to source our ingredients, supporting communities at every step.",
-    color: "from-purple-50 to-violet-50 border-purple-100",
-    iconColor: "text-purple-600",
-  },
+  { icon: <Leaf size={22} />, title: "Organic first", desc: "Gentle formulas built around naturally derived ingredients and everyday comfort." },
+  { icon: <Sparkles size={22} />, title: "Made for glow", desc: "Color and skincare rituals that work for Pakistani weather, routines, and skin tones." },
+  { icon: <Heart size={22} />, title: "Community loved", desc: "Customer feedback shapes shades, bundles, delivery, and every little detail." },
+  { icon: <Shield size={22} />, title: "Honest beauty", desc: "Clear product information, COD checkout, and tracked delivery through PostEx." },
 ];
 
 const MILESTONES = [
-  { year: "2021", title: "The Beginning", desc: "Founded in a small kitchen in Lahore, mixing the first batch of Honey Lip Tint for family and friends." },
-  { year: "2022", title: "Going Online", desc: "Launched on Instagram and got our first 100 orders within a week. The community loved us!" },
-  { year: "2023", title: "Product Line Expansion", desc: "Added the Glow Serum, Honey Mask, and Turmeric Soap — each becoming instant bestsellers." },
-  { year: "2024", title: "500+ Happy Customers", desc: "Crossed 500 verified 5-star reviews. Expanded delivery to all major cities via PostEx." },
-  { year: "2025", title: "Full eCommerce Store", desc: "Launched our dedicated online store with COD, bundle deals, and nationwide same-week delivery." },
+  ["2021", "The beginning", "Beauty Bee started with small-batch organic beauty experiments and a love for easy everyday glow."],
+  ["2022", "Going online", "Instagram orders grew quickly as customers shared their favorite tint shades."],
+  ["2024", "Nationwide delivery", "PostEx delivery and COD made Beauty Bee available across Pakistan."],
+  ["2026", "A new store", "The app now brings the full tint experience, bundles, checkout, and tracking into one place."],
 ];
+
+function Mesh() {
+  return <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>;
+}
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-[#fdf3f9]">
+    <div className="bb-page">
+      <Mesh />
       <StoreNav />
       <CartDrawer />
       <WhatsAppButton />
 
-      {/* Hero */}
-      <section className="hero-animated text-white relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {["✨","🌸","💕","🌿","⭐","🌺"].map((p, i) => (
-            <div key={i} className="absolute text-2xl opacity-20 animate-float"
-              style={{ left: `${10 + i * 15}%`, top: `${20 + (i % 3) * 25}%`, animationDuration: `${3 + i * 0.5}s`, animationDelay: `${i * 0.4}s` }}>
-              {p}
-            </div>
-          ))}
-        </div>
-        <div className="relative z-10 max-w-2xl mx-auto px-4 py-16 text-center">
-          <div className="mb-4 flex justify-center animate-float">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Beauty Bee" className="h-16 brightness-0 invert" />
-          </div>
-          <p className="text-xs font-bold tracking-widest uppercase text-white/60 mb-2 animate-fade-in">Our Story</p>
-          <h1 className="text-4xl font-black mb-4 animate-slide-up">About Beauty Bee</h1>
-          <p className="text-white/80 max-w-md mx-auto text-sm leading-relaxed animate-fade-in delay-200">
-            We believe every woman deserves to feel beautiful — naturally. Beauty Bee was born from a love of organic ingredients and a desire to create products that actually work for Pakistani skin.
+      <main className="bb-shell px-5 py-8 pb-16">
+        <section className="bb-section-head">
+          <Image src="/logo.svg" alt="Beauty Bee" width={148} height={60} priority unoptimized />
+          <span className="bb-eyebrow">Our Story</span>
+          <h1 className="bb-section-title">Beauty that<br /><em>feels alive.</em></h1>
+          <p className="bb-section-sub">
+            Beauty Bee makes organic-inspired beauty feel simple, wearable, and joyful for everyday routines.
           </p>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 40" fill="none">
-            <path d="M0 40L60 33.3C120 26.7 240 13.3 360 10C480 6.7 600 13.3 720 20C840 26.7 960 33.3 1080 33.3C1200 33.3 1320 26.7 1380 23.3L1440 20V40H0Z" fill="#fdf3f9"/>
-          </svg>
-        </div>
-      </section>
+        </section>
 
-      <div className="max-w-2xl mx-auto px-4 pb-16">
+        <section className="bb-glass rounded-[28px] p-7">
+          <span className="bb-eyebrow">Mission</span>
+          <h2 className="bb-serif mt-3 text-4xl leading-none text-[var(--bb-ink)]">Premium beauty, without the fuss.</h2>
+          <p className="mt-4 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">
+            We believe beauty should be easy to trust and easy to wear. Our products are created for women who want color, care, and convenience without complicated routines or hidden surprises.
+          </p>
+        </section>
 
-        {/* Mission */}
-        <RevealSection className="mt-12 bg-white rounded-3xl p-6 shadow-sm border border-pink-50">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center text-2xl flex-shrink-0">
-              🌸
-            </div>
-            <div>
-              <h2 className="font-black text-[#8b0057] text-xl mb-2">Our Mission</h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                To make premium, organic beauty accessible to every woman in Pakistan. We&apos;re committed to transparency — you&apos;ll always know exactly what goes into our products and where it comes from. No hidden ingredients, no greenwashing, no compromises.
-              </p>
-            </div>
+        <section className="bb-section px-0">
+          <div className="bb-section-head">
+            <span className="bb-eyebrow">What We Stand For</span>
+            <h2 className="bb-section-title">The Beauty Bee<br /><em>promise.</em></h2>
           </div>
-        </RevealSection>
-
-        {/* Values */}
-        <RevealSection className="mt-10">
-          <h2 className="font-black text-[#8b0057] text-xl text-center mb-6">What We Stand For</h2>
           <div className="grid grid-cols-2 gap-3">
-            {VALUES.map((v, i) => (
-              <RevealSection key={v.title} delay={i * 80}
-                className={`bg-gradient-to-br ${v.color} rounded-2xl p-4 border`}>
-                <div className="text-3xl mb-2">{v.emoji}</div>
-                <h3 className="font-bold text-[#8b0057] text-sm mb-1">{v.title}</h3>
-                <p className="text-[11px] text-gray-500 leading-snug">{v.desc}</p>
-              </RevealSection>
+            {VALUES.map(value => (
+              <article key={value.title} className="bb-glass rounded-[22px] p-4">
+                <span className="mb-3 grid h-11 w-11 place-items-center rounded-full bg-[rgba(155,43,71,0.08)] text-[var(--bb-berry)]">{value.icon}</span>
+                <h3 className="bb-serif text-2xl leading-none">{value.title}</h3>
+                <p className="mt-2 text-xs font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{value.desc}</p>
+              </article>
             ))}
           </div>
-        </RevealSection>
+        </section>
 
-        {/* Our story timeline */}
-        <RevealSection className="mt-12">
-          <h2 className="font-black text-[#8b0057] text-xl text-center mb-8">Our Journey 🗺️</h2>
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#e91e8c] to-pink-100" />
-            <div className="space-y-8">
-              {MILESTONES.map((m, i) => (
-                <RevealSection key={m.year} delay={i * 100} className="flex gap-4 pl-2">
-                  {/* Dot */}
-                  <div className="relative flex-shrink-0">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#8b0057] to-[#e91e8c] flex items-center justify-center shadow-md z-10 relative">
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-2xl p-4 flex-1 shadow-sm border border-pink-50 -mt-0.5">
-                    <span className="text-[10px] font-black text-[#e91e8c] bg-pink-50 px-2 py-0.5 rounded-full">{m.year}</span>
-                    <h3 className="font-bold text-[#8b0057] text-sm mt-1.5 mb-1">{m.title}</h3>
-                    <p className="text-[12px] text-gray-500 leading-snug">{m.desc}</p>
-                  </div>
-                </RevealSection>
-              ))}
-            </div>
+        <section className="bb-section px-0">
+          <div className="bb-section-head">
+            <span className="bb-eyebrow">Journey</span>
+            <h2 className="bb-section-title">From shade tests<br /><em>to your shelf.</em></h2>
           </div>
-        </RevealSection>
+          <div className="relative grid gap-4">
+            {MILESTONES.map(([year, title, desc]) => (
+              <article key={year} className="bb-glass rounded-[22px] p-5">
+                <span className="rounded-full bg-[var(--bb-berry)] px-3 py-1 text-xs font-black text-white">{year}</span>
+                <h3 className="bb-serif mt-3 text-3xl leading-none">{title}</h3>
+                <p className="mt-2 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{desc}</p>
+              </article>
+            ))}
+          </div>
+        </section>
 
-        {/* Stats */}
-        <RevealSection className="mt-12">
-          <div className="grid grid-cols-3 gap-3">
+        <section className="bb-glass rounded-[28px] p-7">
+          <div className="grid grid-cols-3 gap-3 text-center">
             {[
-              { num: "500+", label: "Happy Customers", emoji: "😊" },
-              { num: "4", label: "Hero Products", emoji: "✨" },
-              { num: "100%", label: "Organic", emoji: "🌿" },
-            ].map((s, i) => (
-              <RevealSection key={s.label} delay={i * 100}
-                className="bg-white rounded-2xl p-4 text-center shadow-sm border border-pink-50">
-                <div className="text-2xl mb-1">{s.emoji}</div>
-                <p className="font-black text-[#e91e8c] text-xl">{s.num}</p>
-                <p className="text-[10px] text-gray-400 font-semibold mt-0.5">{s.label}</p>
-              </RevealSection>
+              { icon: <Star size={22} />, num: "4.8", label: "average rating" },
+              { icon: <Package size={22} />, num: "COD", label: "Pakistan-wide" },
+              { icon: <Check size={22} />, num: "500+", label: "happy reviews" },
+            ].map(stat => (
+              <div key={stat.label} className="rounded-2xl bg-white/55 p-3">
+                <span className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-[rgba(155,43,71,0.08)] text-[var(--bb-berry)]">{stat.icon}</span>
+                <p className="bb-serif text-2xl leading-none text-[var(--bb-berry)]">{stat.num}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-[var(--bb-ink-soft)]">{stat.label}</p>
+              </div>
             ))}
           </div>
-        </RevealSection>
+        </section>
 
-
-        {/* Ingredients promise */}
-        <RevealSection className="mt-10 bg-gradient-to-br from-green-50 to-emerald-50 rounded-3xl p-6 border border-green-100">
-          <div className="flex items-center gap-2 mb-3">
-            <Leaf size={18} className="text-green-600" />
-            <h3 className="font-black text-green-800 text-base">Our Ingredient Promise</h3>
-          </div>
-          <p className="text-sm text-green-700 leading-relaxed mb-4">
-            We only use ingredients that are safe, sustainably sourced, and genuinely effective. Our formulations are developed and tested in Pakistan — designed specifically for our climate and skin types.
+        <section className="mt-8 rounded-[28px] bg-[var(--bb-ink)] p-8 text-center text-white">
+          <Image src="/logo.svg" alt="Beauty Bee" width={120} height={48} className="mx-auto brightness-0 invert opacity-80" />
+          <h2 className="bb-serif mt-5 text-4xl leading-none">Ready to glow?</h2>
+          <p className="mx-auto mt-3 max-w-xs text-sm font-semibold leading-relaxed text-white/65">
+            Shop the tint-led Beauty Bee experience with local checkout and tracked delivery.
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            {["No Parabens", "No Sulphates", "No Artificial Fragrance", "No Mineral Oils", "No Bleaching Agents", "No Animal Testing"].map(claim => (
-              <div key={claim} className="flex items-center gap-2 text-[11px] font-semibold text-green-700">
-                <div className="w-4 h-4 rounded-full bg-green-200 flex items-center justify-center flex-shrink-0">
-                  <span className="text-[8px]">✓</span>
-                </div>
-                {claim}
-              </div>
-            ))}
-          </div>
-        </RevealSection>
-
-        {/* Trust badges */}
-        <RevealSection className="mt-10">
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: <Shield size={20} className="text-[#e91e8c]" />, title: "100% Organic", sub: "Certified ingredients" },
-              { icon: <Star size={20} className="text-amber-500" />, title: "5-Star Rated", sub: "500+ reviews" },
-              { icon: <Package size={20} className="text-[#e91e8c]" />, title: "COD Delivery", sub: "Pakistan-wide" },
-            ].map(b => (
-              <div key={b.title} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-pink-50">
-                <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center mx-auto mb-2">
-                  {b.icon}
-                </div>
-                <p className="font-bold text-[#8b0057] text-xs">{b.title}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">{b.sub}</p>
-              </div>
-            ))}
-          </div>
-        </RevealSection>
-
-        {/* CTA */}
-        <RevealSection className="mt-10 hero-animated rounded-3xl p-8 text-white text-center shadow-lg relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="mb-3 flex justify-center animate-float">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.svg" alt="Beauty Bee" className="h-12 brightness-0 invert" />
-            </div>
-            <h3 className="font-black text-xl mb-2">Ready to Glow?</h3>
-            <p className="text-white/80 text-sm mb-5">Shop our full range of organic beauty products with COD delivery anywhere in Pakistan.</p>
-            <Link href="/shop"
-              className="inline-flex items-center gap-2 bg-white text-[#8b0057] font-black px-7 py-3 rounded-full text-sm shadow-lg hover:scale-105 transition-transform">
-              Shop Now <ArrowRight size={14} />
-            </Link>
-          </div>
-        </RevealSection>
-
-        {/* Contact snippet */}
-        <RevealSection className="mt-8 bg-white rounded-2xl p-5 shadow-sm border border-pink-50 text-center">
-          <Heart size={18} className="text-[#e91e8c] mx-auto mb-2" />
-          <p className="text-sm font-bold text-[#8b0057] mb-1">Have Questions?</p>
-          <p className="text-xs text-gray-500 mb-3">We&apos;d love to hear from you! Reach out on WhatsApp or Instagram.</p>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center">
-            <Link href="/faq" className="text-xs font-semibold text-[#e91e8c] border border-pink-200 rounded-full px-4 py-2 hover:bg-pink-50 transition-colors">
-              Read Our FAQs
-            </Link>
-          </div>
-        </RevealSection>
-
-      </div>
+          <Link href="/shop" className="bb-btn mt-6 bg-white text-[var(--bb-berry)]">
+            Shop now <ArrowRight size={17} />
+          </Link>
+        </section>
+      </main>
     </div>
   );
 }

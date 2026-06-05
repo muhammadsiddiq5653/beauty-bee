@@ -1,8 +1,23 @@
 import type { Metadata } from "next";
+import { Cormorant_Garamond, Manrope } from "next/font/google";
 import Script from "next/script";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
+import "./bb.css";
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-bb-serif",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-bb-sans",
+});
 
 export const metadata: Metadata = {
   title: "Beauty Bee — Lip & Cheek Tint",
@@ -26,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const TIKTOK_PIXEL_ID = cleanTrackingId(process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID);
 
   return (
-    <html lang="en">
+    <html lang="en" className={`${cormorant.variable} ${manrope.variable}`}>
       <head>
         <meta name="theme-color" content="#FAF7F4" />
         <link rel="apple-touch-icon" href="/logo.svg" />

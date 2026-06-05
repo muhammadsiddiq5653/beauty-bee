@@ -71,8 +71,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Still checking auth state
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
-        <span className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      <div className="bb-page grid place-items-center">
+        <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>
+        <span className="relative z-10 h-7 w-7 animate-spin rounded-full border-2 border-[rgba(155,43,71,0.18)] border-t-[var(--bb-berry)]" />
       </div>
     );
   }
@@ -80,38 +81,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Not signed in — show login
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
-        <form onSubmit={login} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl">
+      <div className="bb-page grid place-items-center p-4">
+        <div className="bb-mesh" aria-hidden="true"><span /><span /><span /></div>
+        <form onSubmit={login} className="bb-glass relative z-10 w-full max-w-sm rounded-[30px] p-8">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-4">
               <Image src="/logo.svg" alt="Beauty Bee" width={120} height={48} />
             </div>
-            <h1 className="font-serif font-bold text-xl text-[#1A1A1A]">Beauty Bee Admin</h1>
-            <p className="text-sm text-[#6B6B6B] mt-1">Sign in with your admin account</p>
+            <p className="bb-eyebrow">Operations Suite</p>
+            <h1 className="bb-serif mt-2 text-4xl leading-none text-[var(--bb-ink)]">Beauty Bee Admin</h1>
+            <p className="text-sm font-semibold text-[var(--bb-ink-soft)] mt-2">Sign in with your admin account</p>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-[#6B6B6B] block mb-1.5">Email</label>
+              <label className="text-xs font-black text-[var(--bb-ink-soft)] block mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="admin@beautybee.pk"
                 required
-                className="w-full border border-[#EDE8E4] rounded-2xl px-4 py-3 text-sm bg-[#FAF7F4] focus:outline-none focus:border-[#9B2B47] transition-colors"
+                className="bb-input"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-[#6B6B6B] block mb-1.5">Password</label>
+              <label className="text-xs font-black text-[var(--bb-ink-soft)] block mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Password"
                   required
-                  className="w-full border border-[#EDE8E4] rounded-2xl px-4 py-3 pr-11 text-sm bg-[#FAF7F4] focus:outline-none focus:border-[#9B2B47] transition-colors"
+                  className="bb-input pr-11"
                 />
                 <button
                   type="button"
@@ -131,11 +134,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             type="submit"
             disabled={signing}
-            className="w-full mt-5 bg-[#9B2B47] hover:bg-[#7D1E35] text-white py-3 rounded-full font-semibold text-sm disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+            className="bb-btn bb-btn-primary mt-5 w-full disabled:opacity-60"
           >
             {signing ? (
               <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" /> Signing in...</>
-            ) : "Sign In →"}
+            ) : "Sign In"}
           </button>
         </form>
       </div>
@@ -144,22 +147,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Signed in — show admin
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="bb-admin bb-admin-main flex">
       {/* Sidebar — desktop */}
-      <aside className="hidden md:flex flex-col w-60 bg-white border-r border-gray-100 shadow-sm fixed h-full z-30">
-        <div className="p-5 border-b border-gray-100">
+      <aside className="bb-glass fixed z-30 hidden h-full w-64 flex-col border-r border-white/60 md:flex">
+        <div className="p-5 border-b border-[rgba(155,43,71,0.08)]">
           <Image src="/logo.svg" alt="Beauty Bee" width={100} height={40} className="mb-1" />
-          <div className="text-xs text-[#6B6B6B] mt-0.5 truncate">{user.email}</div>
+          <div className="mt-2 text-xs font-bold text-[var(--bb-ink-soft)] truncate">{user.email}</div>
         </div>
         <nav className="flex-1 py-4 px-3 space-y-1">
           {NAV.map(n => {
             const active = pathname === n.href || (n.href !== "/admin" && pathname.startsWith(n.href));
             return (
               <Link key={n.href} href={n.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-black transition-all ${
                   active
-                    ? "bg-[#9B2B47] text-white"
-                    : "text-gray-600 hover:bg-[#F9ECF0] hover:text-[#9B2B47]"
+                    ? "bg-[var(--bb-berry)] text-white shadow-lg shadow-[rgba(155,43,71,0.16)]"
+                    : "text-[var(--bb-ink-soft)] hover:bg-white/70 hover:text-[var(--bb-berry)]"
                 }`}>
                 <n.icon size={17} /> {n.label}
                 {active && <ChevronRight size={13} className="ml-auto" />}
@@ -167,20 +170,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
-        <div className="p-3 border-t border-gray-100">
+        <div className="p-3 border-t border-[rgba(155,43,71,0.08)]">
           <Link href="/shop" target="_blank"
-            className="flex items-center gap-2 text-xs text-[#6B6B6B] hover:text-[#9B2B47] px-3 py-2 rounded-xl hover:bg-[#F9ECF0] mb-1 transition-colors">
+            className="mb-1 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black text-[var(--bb-ink-soft)] transition-colors hover:bg-white/70 hover:text-[var(--bb-berry)]">
             <ShoppingBag size={13} /> View Customer Store
           </Link>
           <button onClick={logout}
-            className="flex items-center gap-2 text-xs text-[#6B6B6B] hover:text-red-500 px-3 py-2 rounded-xl hover:bg-red-50 w-full transition-colors">
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-black text-[var(--bb-ink-soft)] transition-colors hover:bg-red-50 hover:text-red-500">
             <LogOut size={13} /> Sign Out
           </button>
         </div>
       </aside>
 
       {/* Mobile header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-sm flex items-center justify-between px-4 py-3">
+      <div className="bb-glass fixed left-0 right-0 top-0 z-40 flex items-center justify-between px-4 py-3 md:hidden">
         <div className="flex items-center">
           <Image src="/logo.svg" alt="Beauty Bee" width={90} height={36} />
         </div>
@@ -192,7 +195,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile sidebar overlay */}
       {sideOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/40" onClick={() => setSideOpen(false)}>
-          <div className="bg-white w-64 h-full shadow-xl p-4" onClick={e => e.stopPropagation()}>
+          <div className="bb-glass h-full w-64 p-4" onClick={e => e.stopPropagation()}>
             <div className="mb-4 pb-3 border-b border-gray-100">
               <Image src="/logo.svg" alt="Beauty Bee" width={90} height={36} />
               <div className="text-xs text-[#6B6B6B] mt-0.5 truncate">{user.email}</div>
@@ -202,8 +205,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 const active = pathname === n.href;
                 return (
                   <Link key={n.href} href={n.href} onClick={() => setSideOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold ${
-                      active ? "bg-[#9B2B47] text-white" : "text-gray-600 hover:bg-[#F9ECF0]"
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-black ${
+                      active ? "bg-[var(--bb-berry)] text-white" : "text-[var(--bb-ink-soft)] hover:bg-white/70"
                     }`}>
                     <n.icon size={17} /> {n.label}
                   </Link>
@@ -218,7 +221,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* Main content */}
-      <div className="flex-1 md:ml-60 pt-14 md:pt-0">
+      <div className="flex-1 pt-16 md:ml-64 md:pt-0">
         {children}
       </div>
     </div>

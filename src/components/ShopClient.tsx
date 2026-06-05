@@ -3,30 +3,18 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight, CheckCircle, Leaf, Minus, Package, Plus,
-  Shield, ShoppingBag, Star, Truck
+  ArrowRight, Check, Minus, Package, Plus,
+  ShoppingBag, Sparkles, Star, Trash2
 } from "lucide-react";
-import StoreNav from "@/components/StoreNav";
-import UrgencyBadge from "@/components/UrgencyBadge";
+import CartDrawer from "@/components/CartDrawer";
+import EmailCapture from "@/components/EmailCapture";
 import { useCartStore } from "@/store/cart";
-import type { Bundle, Product } from "@/types";
-import type { MarketingBanner, StoreSettings } from "@/lib/firestore";
+import type { Bundle, Product, Shade } from "@/types";
+import type { StoreSettings } from "@/lib/firestore";
 
-const CartDrawer = dynamic(() => import("@/components/CartDrawer"), {
-  ssr: false,
-  loading: () => null,
-});
-const ReviewsSection = dynamic(() => import("@/components/ReviewsSection"), {
-  ssr: false,
-  loading: () => <div className="h-40 rounded-2xl bg-white border border-[#EDE8E4]" />,
-});
 const WhatsAppButton = dynamic(() => import("@/components/WhatsAppButton"), {
-  ssr: false,
-  loading: () => null,
-});
-const EmailCapture = dynamic(() => import("@/components/EmailCapture"), {
   ssr: false,
   loading: () => null,
 });
@@ -37,434 +25,613 @@ interface Props {
   settings: StoreSettings;
 }
 
-function sectionType(section: MarketingBanner): NonNullable<MarketingBanner["type"]> {
-  if (section.type) return section.type;
-  if (section.placement === "top") return "announcement";
-  if (section.placement === "hero") return "hero";
-  return "promo";
-}
+type ShadeView = Shade & {
+  id: string;
+  vibe: string;
+  desc: string;
+  img: string;
+};
 
-function orderedSections(banners: MarketingBanner[] | undefined) {
-  return (banners ?? [])
-    .filter(section => section.active && section.title.trim())
-    .map((section, index) => ({ ...section, sortOrder: section.sortOrder ?? index * 10 }))
-    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-}
+const LOCAL_SHADE_IMAGES = [
+  "/beauty-bee/tint-redberry.jpeg",
+  "/beauty-bee/tint-pinkrose.jpeg",
+  "/beauty-bee/tint-peachy.jpeg",
+];
 
-function AnnouncementTicker({ banners }: { banners: MarketingBanner[] }) {
-  const text = banners.map(banner => banner.title).join("   ·   ");
-  if (!text) return null;
+const REELS = [
+  { src: "/beauty-bee/reel-a.mp4", poster: "/beauty-bee/poster-reel-a.jpg", label: "Summer tint look" },
+  { src: "/beauty-bee/reel-b.mp4", poster: "/beauty-bee/poster-reel-b.jpg", label: "Full glam tint test" },
+  { src: "/beauty-bee/reel-c.mp4", poster: "/beauty-bee/poster-reel-c.jpg", label: "Cheek tint demo" },
+  { src: "/beauty-bee/reel-d.mp4", poster: "/beauty-bee/poster-reel-d.jpg", label: "Everyday Red Berry" },
+  { src: "/beauty-bee/reel-biz.mp4", poster: "/beauty-bee/poster-reel-biz.jpg", label: "Beauty Bee routine" },
+];
 
+const REVIEWS = [
+  { name: "Aisha K.", city: "Lahore", shade: "Red Berry", hex: "#A52647", text: "This is THE tint. I wore it to a wedding and got compliments all night. It fades softly and never cracks.", date: "3 days ago" },
+  { name: "Maryam S.", city: "Karachi", shade: "Pink Rose", hex: "#D26B86", text: "Finally a tint that looks natural on desi skin tones. Pink Rose is my everyday shade now.", date: "1 week ago" },
+  { name: "Fatima R.", city: "Islamabad", shade: "Peachy Pop", hex: "#EA8A63", text: "Love the peachy shade for summer. Goes on smooth and the packaging is adorable.", date: "2 weeks ago" },
+  { name: "Zara A.", city: "Rawalpindi", shade: "Red Berry", hex: "#A52647", text: "Ordered the bundle and my sisters keep borrowing it. Already reordering.", date: "3 weeks ago" },
+];
+
+const FAQ = [
+  ["What are the ingredients?", "Our tint is built around natural oils, waxes, vitamin E, and mineral pigments. No harsh fragrance or heavy feel."],
+  ["How long does shipping take?", "Most Pakistan orders arrive in 2 to 5 working days. You can track your parcel after checkout."],
+  ["Do you offer Cash on Delivery?", "Yes. Beauty Bee supports COD on active delivery cities through PostEx."],
+  ["Can I use it on cheeks too?", "Yes. Dab lightly on cheeks, blend with fingertips, and layer if you want more color."],
+];
+
+function primaryTint(products: Product[]) {
   return (
-    <div className="bg-[#9B2B47] text-white/90 text-[11px] font-medium py-2 overflow-hidden tracking-wide">
-      <div className="flex whitespace-nowrap animate-ticker">
-        <span className="px-6">{text}</span>
-        <span className="px-6">{text}</span>
-      </div>
+    products.find(p => p.id === "tint") ??
+    products.find(p => p.needsShade) ??
+    products.find(p => p.name.toLowerCase().includes("tint")) ??
+    products[0]
+  );
+}
+
+function shadeSlug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function shadeVibe(name: string, index: number) {
+  const lower = name.toLowerCase();
+  if (lower.includes("berry") || lower.includes("red")) return "Bold";
+  if (lower.includes("rose") || lower.includes("pink") || lower.includes("nude")) return "Soft";
+  if (lower.includes("peach") || lower.includes("coral")) return "Fresh";
+  return ["Bold", "Soft", "Fresh", "Glow"][index % 4];
+}
+
+function shadeDesc(name: string, index: number) {
+  const lower = name.toLowerCase();
+  if (lower.includes("berry") || lower.includes("red")) return "A deep, confident berry. The one that turns heads at dinner.";
+  if (lower.includes("rose") || lower.includes("pink") || lower.includes("nude")) return "Your-lips-but-better rose. Effortless, every single day.";
+  if (lower.includes("peach") || lower.includes("coral")) return "Sun-warmed peach that wakes up your whole face.";
+  return ["Buildable color for day-to-night glow.", "A soft flush that blends into skin.", "Fresh warmth for lips and cheeks.", "A little dewy lift for every look."][index % 4];
+}
+
+function buildShades(product: Product | undefined): ShadeView[] {
+  const source = product?.shades?.length
+    ? product.shades
+    : [
+      { name: "Red Berry", hex: "#A52647" },
+      { name: "Pink Rose", hex: "#D26B86" },
+      { name: "Peachy Pop", hex: "#EA8A63" },
+    ];
+
+  return source.slice(0, 4).map((shade, index) => ({
+    ...shade,
+    id: shadeSlug(shade.name),
+    hex: shade.hex ?? ["#A52647", "#D26B86", "#EA8A63", "#B45A72"][index % 4],
+    vibe: shadeVibe(shade.name, index),
+    desc: shadeDesc(shade.name, index),
+    img: LOCAL_SHADE_IMAGES[index % LOCAL_SHADE_IMAGES.length] ?? shade.imageUrl ?? product?.imageUrl ?? "",
+  }));
+}
+
+function Mesh() {
+  return (
+    <div className="bb-mesh" aria-hidden="true">
+      <span />
+      <span />
+      <span />
     </div>
   );
 }
 
-function HeroBanner({ banner }: { banner: MarketingBanner }) {
-  const href = banner.href || "#products";
-  const hasMedia = Boolean(banner.videoUrl || banner.imageUrl);
-
+function ProductShot({ shades, active, alt }: { shades: ShadeView[]; active: number; alt: string }) {
   return (
-    <section
-      className="relative overflow-hidden"
-      style={{ backgroundColor: banner.backgroundColor || "#F2EDE8", color: banner.textColor || "#1A1A1A" }}
-    >
-      {banner.videoUrl ? (
-        <video
-          src={banner.videoUrl}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover opacity-25"
-        />
-      ) : banner.imageUrl ? (
+    <div className="bb-shot">
+      {shades.map((shade, index) => (
         <Image
-          src={banner.imageUrl}
-          alt=""
+          key={shade.id}
+          src={shade.img}
+          alt={index === active ? `${alt} in ${shade.name}` : ""}
           fill
-          priority
-          sizes="100vw"
-          className="object-cover opacity-25"
+          priority={index === active}
+          sizes="(max-width: 720px) 100vw, 430px"
+          className={index === active ? "is-on" : ""}
         />
-      ) : null}
-      {hasMedia && <div className="absolute inset-0 bg-[#FAF7F4]/30" />}
-      <div className="relative max-w-5xl mx-auto px-5 py-16 md:py-24 flex flex-col items-center text-center">
-        {banner.eyebrow && (
-          <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#9B2B47]/70 mb-4">
-            {banner.eyebrow}
-          </p>
-        )}
-        <h1 className="font-serif font-bold text-5xl md:text-6xl leading-[1.1] mb-4">
-          {banner.title}
-          {banner.highlight && (
-            <>
-              <br />
-              <span className="text-[#9B2B47]">{banner.highlight}</span>
-            </>
-          )}
-        </h1>
-        {banner.body && (
-          <p className="text-[#6B6B6B] text-base max-w-sm mx-auto mb-8 leading-relaxed">{banner.body}</p>
-        )}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <a href={href} className="btn-ripple inline-flex items-center gap-2 bg-[#9B2B47] hover:bg-[#7D1E35] text-white font-semibold px-8 py-3.5 rounded-full text-sm transition-all shadow-lg shadow-[#9B2B47]/20">
-            {banner.buttonLabel || "Shop Now"} <ArrowRight size={15} />
-          </a>
-          <Link href="/track" className="inline-flex items-center gap-2 bg-white border border-[#EDE8E4] text-[#6B6B6B] hover:text-[#9B2B47] hover:border-[#9B2B47] font-medium px-7 py-3.5 rounded-full text-sm transition-all">
-            <Package size={14} /> Track My Order
-          </Link>
-        </div>
-        <div className="mt-10 flex items-center gap-2">
-          <div className="flex gap-0.5">
-            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={13} className="fill-[#C9A84C] text-[#C9A84C]" />)}
-          </div>
-          <span className="text-xs text-[#6B6B6B] font-medium">4.8 · 500+ reviews from across Pakistan</span>
-        </div>
-      </div>
-    </section>
+      ))}
+    </div>
   );
 }
 
-function PromoBanner({ banner, deliveryCharge }: { banner: MarketingBanner; deliveryCharge: number }) {
-  const hasMedia = Boolean(banner.videoUrl || banner.imageUrl);
+function Hero({
+  tint,
+  shades,
+  active,
+  cartCount,
+}: {
+  tint: Product;
+  shades: ShadeView[];
+  active: number;
+  cartCount: number;
+}) {
+  const shade = shades[active];
 
   return (
-    <section
-      className="mt-12 rounded-3xl p-8 text-white text-center overflow-hidden relative"
-      style={{ backgroundColor: banner.backgroundColor || undefined, color: banner.textColor || undefined }}
-    >
-      {banner.videoUrl ? (
-        <video
-          src={banner.videoUrl}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : banner.imageUrl ? (
-        <Image src={banner.imageUrl} alt="" fill sizes="(max-width: 768px) 100vw, 960px" className="object-cover" />
-      ) : (
-        <div className="absolute inset-0 hero-animated" />
-      )}
-      <div className={`absolute inset-0 ${hasMedia ? "bg-[#1A1A1A]/35" : "bg-[#1A1A1A]/10"}`} />
-      <div className="relative z-10">
-        {banner.eyebrow && <p className="text-xs font-semibold tracking-[0.2em] uppercase text-white/70 mb-3">{banner.eyebrow}</p>}
-        <h3 className="font-serif font-bold text-2xl mb-2">
-          {banner.title.replace("{deliveryCharge}", deliveryCharge.toLocaleString())}
-        </h3>
-        {banner.body && <p className="text-sm text-white/80 mb-6">{banner.body}</p>}
-        {banner.href && (
-          <a href={banner.href} className="inline-flex items-center gap-2 bg-white text-[#9B2B47] font-semibold px-7 py-3 rounded-full text-sm hover:scale-105 transition-transform shadow-lg">
-            {banner.buttonLabel || "Shop Now"} <ArrowRight size={14} />
-          </a>
-        )}
+    <header className="bb-hero" id="top" style={{ "--bb-shade": shade.hex, "--bb-shade-glow": `${shade.hex}70` } as React.CSSProperties}>
+      <div className="bb-announce bb-glass">
+        <span className="bb-announce-dot" /> Free delivery on eligible orders - Cash on Delivery
       </div>
+
+      <div>
+        <span className="bb-eyebrow">Pakistan&apos;s Favourite Organic Tint</span>
+        <h1 className="bb-hero-title">
+          Your Lips.<br /><em>Your Mood.</em>
+        </h1>
+        <p className="bb-hero-sub">
+          {tint.name}. Three living shades. All-day color that feels like nothing.
+        </p>
+        <div className="bb-hero-cta">
+          <a className="bb-btn bb-btn-primary" href="#shades">
+            Shop the Tint <ArrowRight size={18} />
+          </a>
+          <Link className="bb-btn bb-btn-ghost" href="/track">Track My Order</Link>
+        </div>
+
+        <div className="bb-trust-row">
+          <span><strong>4.8</strong>500+ reviews</span>
+          <i />
+          <span><strong>COD</strong>Pay on delivery</span>
+          <i />
+          <span><strong>{cartCount}</strong>in your cart</span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function ShadeExperience({
+  tint,
+  shades,
+  active,
+  setActive,
+}: {
+  tint: Product;
+  shades: ShadeView[];
+  active: number;
+  setActive: (index: number) => void;
+}) {
+  const shade = shades[active];
+
+  return (
+    <section className="bb-section" id="shades" style={{ "--bb-shade": shade.hex, "--bb-shade-glow": `${shade.hex}70` } as React.CSSProperties}>
+      <div className="bb-section-head">
+        <span className="bb-eyebrow">The Collection</span>
+        <h2 className="bb-section-title">Tap a shade.<br /><em>See it live.</em></h2>
+        <p className="bb-section-sub">Real tints, one organic formula. Lips and cheeks, all day.</p>
+      </div>
+
+      <div className="bb-shade-showcase">
+        <div className="bb-shotcard w-[min(82vw,360px)]">
+          <ProductShot shades={shades} active={active} alt={tint.name} />
+        </div>
+        <div className="bb-shade-copy">
+          <span className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: shade.hex }}>{shade.vibe}</span>
+          <h3 className="bb-shade-name">{shade.name}</h3>
+          <p className="mx-auto mt-2 max-w-[30ch] text-[15px] font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{shade.desc}</p>
+        </div>
+      </div>
+
+      <div className="bb-swatches" role="tablist" aria-label="Choose a shade">
+        {shades.map((item, index) => (
+          <button
+            key={item.id}
+            role="tab"
+            aria-selected={index === active}
+            className={`bb-swatch ${index === active ? "is-active" : ""}`}
+            onClick={() => setActive(index)}
+            style={{ "--c": item.hex } as React.CSSProperties}
+          >
+            <span className="bb-swatch-dot" />
+            <span className="flex-1">
+              <span className="bb-swatch-name">{item.name}</span>
+              <span className="bb-swatch-vibe">{item.vibe}</span>
+            </span>
+            {index === active ? <span className="grid h-7 w-7 place-items-center rounded-full text-white" style={{ background: item.hex }}><Check size={14} /></span> : null}
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-7 text-center text-[15px] font-semibold text-[var(--bb-ink-soft)]">
+        Can&apos;t decide? <a href="#bundles" className="font-black text-[var(--bb-berry)]">Get a bundle</a>.
+      </p>
     </section>
   );
 }
 
-function TrustStrip() {
-  const items = [
-    { icon: <Leaf size={14} />, text: "All Natural" },
-    { icon: <Shield size={14} />, text: "No Harsh Chemicals" },
-    { icon: <Truck size={14} />, text: "Pakistan-wide Delivery" },
-    { icon: <Package size={14} />, text: "Cash on Delivery" },
-    { icon: <Star size={14} />, text: "500+ Reviews" },
+function HowToApply() {
+  const steps = [
+    ["01", "Dab", "Dot the tint on lips or cheeks. A little goes a long way."],
+    ["02", "Blend", "Pat and blend with your fingertip for a natural dewy finish."],
+    ["03", "Glow", "Layer lightly for more color. It fades softly through the day."],
   ];
 
   return (
-    <div className="border-y border-[#EDE8E4] bg-white py-4 overflow-x-auto scrollbar-hide">
-      <div className="flex gap-8 px-5 min-w-max mx-auto justify-center">
-        {items.map(item => (
-          <div key={item.text} className="flex items-center gap-2 text-[#6B6B6B] text-xs font-medium whitespace-nowrap">
-            <span className="text-[#9B2B47]">{item.icon}</span>
-            {item.text}
+    <section className="bb-section" id="howto">
+      <div className="bb-section-head">
+        <span className="bb-eyebrow">Simple as 1-2-3</span>
+        <h2 className="bb-section-title">How to<br /><em>apply.</em></h2>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {steps.map(([num, title, desc]) => (
+          <div key={num} className="bb-glass rounded-[22px] p-4 text-center">
+            <Sparkles className="mx-auto mb-3 text-[var(--bb-berry)]" size={28} />
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--bb-berry)]">{num}</span>
+            <h3 className="bb-serif mt-1 text-2xl text-[var(--bb-ink)]">{title}</h3>
+            <p className="mt-2 text-[12px] font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{desc}</p>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
-function ProductSection({ section, products }: { section: MarketingBanner; products: Product[] }) {
+function ReelWall() {
   return (
-    <section className="max-w-5xl mx-auto px-5 pt-14" id="products">
-      <div className="mb-8 text-center">
-        {section.eyebrow && <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#9B2B47]/60 mb-2">{section.eyebrow}</p>}
-        <h2 className="font-serif font-bold text-3xl text-[#1A1A1A]">{section.title}</h2>
-        {section.body && <p className="text-sm text-[#6B6B6B] mt-2 max-w-xs mx-auto">{section.body}</p>}
+    <section className="bb-section" id="why">
+      <div className="bb-section-head">
+        <span className="bb-eyebrow">Real People, Real Tint</span>
+        <h2 className="bb-section-title">Seen on<br /><em>every feed.</em></h2>
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {products.map((product, index) => (
-          <ProductCard key={product.id} product={product} priority={index === 0} />
+      <div className="bb-reel-grid">
+        {REELS.map(reel => (
+          <div className="bb-reel-card" key={reel.src}>
+            <video src={reel.src} poster={reel.poster} autoPlay muted loop playsInline preload="metadata" />
+            <div className="bb-reel-handle">{reel.label}</div>
+          </div>
         ))}
       </div>
     </section>
   );
 }
 
-function BundleSection({ section, bundles }: { section: MarketingBanner; bundles: Bundle[] }) {
-  if (bundles.length === 0) return null;
-
-  return (
-    <section className="max-w-5xl mx-auto px-5 pt-16">
-      <div className="text-center mb-8">
-        {section.eyebrow && <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#9B2B47]/60 mb-2">{section.eyebrow}</p>}
-        <h2 className="font-serif font-bold text-3xl text-[#1A1A1A]">{section.title}</h2>
-        {section.body && <p className="text-sm text-[#6B6B6B] mt-2">{section.body}</p>}
-      </div>
-      <div className="space-y-4">
-        {bundles.map(bundle => <BundleCard key={bundle.id} bundle={bundle} />)}
-      </div>
-    </section>
-  );
-}
-
-function IngredientsSection({ section }: { section: MarketingBanner }) {
-  return (
-    <section className="max-w-5xl mx-auto px-5 pt-16">
-      <div className="bg-white rounded-3xl border border-[#EDE8E4] p-8 md:p-10 text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-[#F9ECF0] rounded-2xl mb-5">
-          <Leaf size={22} className="text-[#9B2B47]" />
-        </div>
-        <h2 className="font-serif font-bold text-2xl text-[#1A1A1A] mb-3">{section.title}</h2>
-        {section.body && (
-          <p className="text-sm text-[#6B6B6B] leading-relaxed max-w-xl mx-auto">{section.body}</p>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function ReviewsBlock({ section }: { section: MarketingBanner }) {
-  return (
-    <section className="max-w-5xl mx-auto px-5 pt-16">
-      <div className="text-center mb-8">
-        {section.eyebrow && <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#9B2B47]/60 mb-2">{section.eyebrow}</p>}
-        <h2 className="font-serif font-bold text-3xl text-[#1A1A1A]">{section.title}</h2>
-      </div>
-      <ReviewsSection />
-    </section>
-  );
-}
-
-function TrackLinkSection({ section }: { section: MarketingBanner }) {
-  return (
-    <div className="max-w-5xl mx-auto px-5 pt-8 text-center">
-      <Link href={section.href || "/track"} className="inline-flex items-center gap-2 text-[#9B2B47] font-medium text-sm hover:underline underline-offset-2">
-        <Package size={14} /> {section.title} →
-      </Link>
-    </div>
-  );
-}
-
-function PromoSection({ section, deliveryCharge }: { section: MarketingBanner; deliveryCharge: number }) {
-  return (
-    <div className="max-w-5xl mx-auto px-5">
-      <PromoBanner banner={section} deliveryCharge={deliveryCharge} />
-    </div>
-  );
-}
-
-function ProductCard({ product, priority }: { product: Product; priority: boolean }) {
+function ProductCard({ product }: { product: Product }) {
+  const { addItem } = useCartStore();
   const [qty, setQty] = useState(1);
-  const [selectedShade, setSelectedShade] = useState("");
-  const [added, setAdded] = useState(false);
-  const { addItem, items } = useCartStore();
-  const inCart = items.some(i => i.productId === product.id);
-  const savings = product.oldPrice ? product.oldPrice - product.price : 0;
-  const savingsPct = product.oldPrice ? Math.round((savings / product.oldPrice) * 100) : 0;
-
-  function handleAdd(e: React.MouseEvent) {
-    e.preventDefault();
-    if (product.needsShade && !selectedShade) {
-      window.location.href = `/product/${product.id}`;
-      return;
-    }
-    addItem(product, qty, selectedShade || undefined);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
-  }
+  const canQuickAdd = !product.needsShade;
 
   return (
-    <div className="product-card bg-white rounded-3xl border border-[#EDE8E4] overflow-hidden">
-      <Link href={`/product/${product.id}`} className="block relative bg-[#F2EDE8] h-64 overflow-hidden group">
+    <article className="bb-product-card bb-glass">
+      <Link href={`/product/${product.id}`} className="bb-product-media">
         {product.imageUrl ? (
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            priority={priority}
-            sizes="(max-width: 640px) 100vw, 50vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-          />
+          <Image src={product.imageUrl} alt={product.name} fill sizes="(max-width: 720px) 100vw, 360px" className="object-cover" />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <span className="text-8xl">{product.emoji}</span>
-          </div>
-        )}
-        {savingsPct > 0 && (
-          <span className="absolute top-3 left-3 bg-[#9B2B47] text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wide">
-            -{savingsPct}% OFF
-          </span>
-        )}
-        {product.badge && (
-          <span className="absolute top-3 right-3 bg-white text-[#9B2B47] text-[10px] font-bold px-2.5 py-1 rounded-full border border-[#EDE8E4] shadow-sm">
-            {product.badge}
-          </span>
-        )}
-        {inCart && (
-          <div className="absolute bottom-3 right-3 bg-[#9B2B47] text-white rounded-full px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-semibold shadow-md">
-            <CheckCircle size={11} /> In Cart
-          </div>
+          <span className="grid h-full place-items-center text-7xl">{product.emoji}</span>
         )}
       </Link>
-
-      <div className="p-5 space-y-4">
+      <div className="bb-product-body">
         <Link href={`/product/${product.id}`}>
-          <h3 className="font-serif font-bold text-[#1A1A1A] text-lg leading-tight hover:text-[#9B2B47] transition-colors">
-            {product.name}
-          </h3>
-          {product.subtitle && <p className="text-xs text-[#6B6B6B] mt-1 leading-relaxed">{product.subtitle}</p>}
+          <span className="bb-eyebrow">{product.badge || product.subtitle || "Beauty Bee"}</span>
+          <h3 className="bb-serif mt-2 text-3xl leading-none text-[var(--bb-ink)]">{product.name}</h3>
         </Link>
-
-        <div className="flex items-baseline gap-2">
-          <span className="font-bold text-[#9B2B47] text-xl">Rs. {product.price.toLocaleString()}</span>
-          {product.oldPrice && <span className="text-sm text-[#6B6B6B] line-through">Rs. {product.oldPrice.toLocaleString()}</span>}
+        <p className="mt-2 line-clamp-2 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{product.description}</p>
+        <div className="mt-4 flex items-baseline gap-2">
+          <strong className="bb-serif text-3xl text-[var(--bb-berry)]">Rs. {product.price.toLocaleString()}</strong>
+          {product.oldPrice ? <s className="text-sm font-semibold text-[var(--bb-ink-soft)]">Rs. {product.oldPrice.toLocaleString()}</s> : null}
         </div>
-
-        {product.needsShade && product.shades.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#6B6B6B] font-medium">Shade:</span>
-              <span className={`text-xs ${selectedShade ? "text-[#9B2B47] font-semibold" : "text-[#6B6B6B] italic"}`}>
-                {selectedShade || "choose one"}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {product.shades.map(s => (
-                <button
-                  key={s.name}
-                  onClick={() => setSelectedShade(s.name)}
-                  title={s.name}
-                  className={`w-7 h-7 rounded-full border-2 transition-all ${
-                    selectedShade === s.name ? "border-[#9B2B47] scale-110 shadow-md ring-2 ring-[#9B2B47]/20" : "border-[#EDE8E4] shadow-sm"
-                  }`}
-                  style={{ backgroundColor: s.hex ?? "#ccc" }}
-                />
-              ))}
-            </div>
+        <div className="mt-4 flex items-center gap-3">
+          <div className="flex items-center rounded-full bg-white/60 p-1">
+            <button className="grid h-8 w-8 place-items-center rounded-full text-[var(--bb-berry)]" onClick={() => setQty(Math.max(1, qty - 1))}><Minus size={13} /></button>
+            <span className="w-7 text-center text-sm font-black">{qty}</span>
+            <button className="grid h-8 w-8 place-items-center rounded-full text-[var(--bb-berry)]" onClick={() => setQty(qty + 1)}><Plus size={13} /></button>
           </div>
-        )}
-
-        <UrgencyBadge productId={product.id} stock={product.stock} compact />
-
-        <div className="flex items-center gap-3 pt-1">
-          <div className="flex items-center gap-2 bg-[#FAF7F4] rounded-full px-3 py-2 border border-[#EDE8E4]">
-            <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-5 h-5 rounded-full text-[#9B2B47] flex items-center justify-center hover:bg-[#9B2B47] hover:text-white transition-all">
-              <Minus size={10} />
+          {canQuickAdd ? (
+            <button className="bb-btn bb-btn-primary flex-1 px-4 py-3 text-sm" onClick={() => addItem(product, qty)}>
+              Add
             </button>
-            <span className="font-bold text-[#1A1A1A] text-sm w-4 text-center">{qty}</span>
-            <button onClick={() => setQty(qty + 1)} className="w-5 h-5 rounded-full text-[#9B2B47] flex items-center justify-center hover:bg-[#9B2B47] hover:text-white transition-all">
-              <Plus size={10} />
-            </button>
-          </div>
-          <button
-            onClick={handleAdd}
-            className={`btn-ripple flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
-              added ? "bg-green-600" : "bg-[#9B2B47] hover:bg-[#7D1E35] active:scale-95"
-            }`}
-          >
-            {added ? <><CheckCircle size={14} /> Added</> : <><ShoppingBag size={14} /> Add to Cart</>}
-          </button>
+          ) : (
+            <Link className="bb-btn bb-btn-primary flex-1 px-4 py-3 text-sm" href={`/product/${product.id}`}>
+              Choose shade
+            </Link>
+          )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
 function BundleCard({ bundle }: { bundle: Bundle }) {
-  const { addBundle, items } = useCartStore();
-  const [added, setAdded] = useState(false);
-  const inCart = items.some(i => i.productId === bundle.id && i.isBundle);
-  const savings = bundle.oldPrice - bundle.price;
+  const { addBundle } = useCartStore();
+  const save = Math.max(0, bundle.oldPrice - bundle.price);
 
-  function handleAdd() {
-    addBundle(bundle);
+  return (
+    <article className="bb-product-card bb-glass" id={bundle.id}>
+      <Link href={`/bundle/${bundle.id}`} className="bb-product-media">
+        {bundle.imageUrl ? (
+          <Image src={bundle.imageUrl} alt={bundle.name} fill sizes="(max-width: 720px) 100vw, 520px" className="object-cover" />
+        ) : (
+          <div className="grid h-full place-items-center bg-[var(--bb-cream-deep)] text-7xl">{bundle.emoji}</div>
+        )}
+      </Link>
+      <div className="bb-product-body">
+        <span className="bb-eyebrow">Save More</span>
+        <h3 className="bb-serif mt-2 text-3xl leading-none text-[var(--bb-ink)]">{bundle.name}</h3>
+        <p className="mt-2 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{bundle.includes}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <strong className="bb-serif text-3xl text-[var(--bb-berry)]">Rs. {bundle.price.toLocaleString()}</strong>
+          {bundle.oldPrice ? <s className="text-sm font-semibold text-[var(--bb-ink-soft)]">Rs. {bundle.oldPrice.toLocaleString()}</s> : null}
+          {save > 0 ? <span className="rounded-full bg-[var(--bb-berry)] px-3 py-1 text-xs font-black text-white">Save Rs. {save.toLocaleString()}</span> : null}
+        </div>
+        <button className="bb-btn bb-btn-primary mt-5 w-full" onClick={() => addBundle(bundle)}>
+          Get the bundle <ArrowRight size={17} />
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function Reviews() {
+  return (
+    <section className="bb-section" id="reviews">
+      <div className="bb-section-head">
+        <span className="bb-eyebrow">Loved by 500+</span>
+        <h2 className="bb-section-title">What they&apos;re<br /><em>saying.</em></h2>
+      </div>
+      <div className="mb-7 grid place-items-center">
+        <strong className="bb-serif text-5xl leading-none text-[var(--bb-ink)]">4.8</strong>
+        <div className="mt-2 flex gap-1 text-[#f5a623]">{[1, 2, 3, 4, 5].map(i => <Star key={i} size={17} fill="currentColor" />)}</div>
+        <span className="mt-1 text-xs font-semibold text-[var(--bb-ink-soft)]">Based on hundreds of local reviews</span>
+      </div>
+      <div className="bb-card-list">
+        {REVIEWS.map(review => (
+          <article key={review.name} className="bb-glass rounded-[20px] p-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--bb-berry)] text-sm font-black text-white">{review.name[0]}</span>
+              <span className="flex-1">
+                <strong className="block text-sm">{review.name}</strong>
+                <span className="text-xs font-semibold text-[var(--bb-ink-soft)]">{review.city} - {review.date}</span>
+              </span>
+              <span className="rounded-full bg-green-50 px-2 py-1 text-[10px] font-black text-green-600">Verified</span>
+            </div>
+            <div className="mt-3 flex gap-1 text-[#f5a623]">{[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} fill="currentColor" />)}</div>
+            <p className="mt-3 text-sm font-semibold leading-relaxed text-[var(--bb-ink)]">&quot;{review.text}&quot;</p>
+            <span className="mt-4 inline-flex items-center gap-2 text-xs font-black text-[var(--bb-ink-soft)]">
+              <i className="bb-review-dot h-4 w-4" style={{ background: review.hex }} /> {review.shade}
+            </span>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FAQBlock({ whatsappNumber }: { whatsappNumber: string }) {
+  const [open, setOpen] = useState<number | null>(0);
+  const wa = whatsappNumber || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "923080014581";
+
+  return (
+    <section className="bb-section" id="faq">
+      <div className="bb-section-head">
+        <span className="bb-eyebrow">Got Questions?</span>
+        <h2 className="bb-section-title">We&apos;ve got<br /><em>answers.</em></h2>
+      </div>
+      <div className="grid gap-2">
+        {FAQ.map(([q, a], index) => (
+          <article key={q} className="overflow-hidden rounded-[18px] border border-[rgba(155,43,71,0.09)] bg-white/60">
+            <button className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-black text-[var(--bb-ink)]" onClick={() => setOpen(open === index ? null : index)}>
+              {q}
+              <Plus className={`transition-transform ${open === index ? "rotate-45" : ""}`} size={18} />
+            </button>
+            {open === index ? <p className="px-5 pb-5 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{a}</p> : null}
+          </article>
+        ))}
+      </div>
+      <div className="mt-7 grid place-items-center gap-3 text-center">
+        <p className="text-sm font-semibold text-[var(--bb-ink-soft)]">Still have questions?</p>
+        <a className="bb-btn bb-btn-ghost" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">Chat with us</a>
+      </div>
+    </section>
+  );
+}
+
+function StickyBar({
+  product,
+  shade,
+  total,
+  freeDeliveryThreshold,
+}: {
+  product: Product;
+  shade: ShadeView;
+  total: number;
+  freeDeliveryThreshold: number;
+}) {
+  const { addItem } = useCartStore();
+  const [added, setAdded] = useState(false);
+  const threshold = freeDeliveryThreshold > 0 ? freeDeliveryThreshold : 1200;
+  const remaining = Math.max(0, threshold - total);
+  const pct = Math.min(100, (total / threshold) * 100);
+
+  function add() {
+    addItem(product, 1, shade.name);
     setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
+    window.setTimeout(() => setAdded(false), 1200);
   }
 
   return (
-    <div className="product-card bg-white rounded-3xl border border-[#EDE8E4] p-5 flex gap-4">
-      <Link href={`/bundle/${bundle.id}`} className="relative w-16 h-16 rounded-2xl bg-[#F9ECF0] flex items-center justify-center text-3xl flex-shrink-0 overflow-hidden">
-        {bundle.imageUrl ? (
-          <Image src={bundle.imageUrl} alt={bundle.name} fill sizes="64px" className="object-cover" />
-        ) : (
-          <span>{bundle.emoji}</span>
-        )}
-      </Link>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <Link href={`/bundle/${bundle.id}`}>
-            <h3 className="font-serif font-bold text-[#1A1A1A] text-sm leading-tight hover:text-[#9B2B47]">{bundle.name}</h3>
-          </Link>
-          {inCart && <span className="text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-semibold flex-shrink-0">Added</span>}
-        </div>
-        <p className="text-xs text-[#6B6B6B] mt-1 leading-snug">{bundle.includes}</p>
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <span className="font-bold text-[#9B2B47]">Rs. {bundle.price.toLocaleString()}</span>
-          {bundle.oldPrice > 0 && <span className="text-xs text-[#6B6B6B] line-through">Rs. {bundle.oldPrice.toLocaleString()}</span>}
-          {savings > 0 && (
-            <span className="text-[10px] bg-[#C9A84C]/10 text-[#9A7A2C] border border-[#C9A84C]/30 px-2 py-0.5 rounded-full font-semibold">
-              Save Rs. {savings.toLocaleString()}
-            </span>
-          )}
-        </div>
+    <div className="bb-sticky bb-glass" style={{ "--bb-shade": shade.hex } as React.CSSProperties}>
+      <div className="mb-2">
+        <div className="bb-freebar-track"><div className="bb-freebar-fill" style={{ width: `${pct}%` }} /></div>
+        <span className="bb-freebar-label">
+          {remaining === 0 && total > 0 ? "Free delivery unlocked" : `Rs. ${remaining.toLocaleString()} away from free delivery`}
+        </span>
       </div>
-      <button
-        onClick={handleAdd}
-        className={`btn-ripple self-center flex-shrink-0 px-4 py-2 rounded-full font-semibold text-xs text-white transition-all duration-300 ${
-          added ? "bg-green-600" : "bg-[#9B2B47] hover:bg-[#7D1E35] active:scale-95"
-        }`}
-      >
-        {added ? "Added" : "Add"}
-      </button>
+      <div className="bb-sticky-row">
+        <span className="bb-sticky-dot" style={{ background: shade.hex }} />
+        <div className="min-w-0 flex-1">
+          <strong className="bb-serif block truncate text-xl leading-none">{shade.name}</strong>
+          <span className="text-sm font-black text-[var(--bb-berry)]">Rs. {product.price.toLocaleString()}</span>
+          {product.oldPrice ? <s className="ml-2 text-xs font-semibold text-[var(--bb-ink-soft)]">Rs. {product.oldPrice.toLocaleString()}</s> : null}
+        </div>
+        <button className={`bb-btn bb-btn-primary min-w-[144px] px-4 ${added ? "bg-green-600" : ""}`} onClick={add}>
+          {added ? <><Check size={17} /> Added</> : <><Plus size={17} /> Add</>}
+        </button>
+      </div>
     </div>
   );
 }
 
-export default function ShopClient({ products, bundles, settings }: Props) {
-  const deliveryCharge = settings.deliveryCharge;
-  const sections = orderedSections(settings.banners);
+function Footer() {
+  return (
+    <footer className="bb-footer">
+      <Image src="/logo.svg" alt="Beauty Bee" width={130} height={52} className="mx-auto brightness-0 invert opacity-80" />
+      <p className="bb-serif mt-4 text-xl italic text-white/55">Pakistan&apos;s favourite organic tint.</p>
+      <div className="mt-5 flex justify-center gap-5 text-sm font-black">
+        <Link href="/track">Track Order</Link>
+        <Link href="/faq">FAQ</Link>
+        <Link href="/about">About</Link>
+      </div>
+      <p className="mt-5 text-xs text-white/35">© 2026 Beauty Bee. All rights reserved.</p>
+    </footer>
+  );
+}
+
+function CartMiniButton() {
+  const { itemCount, openDrawer } = useCartStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAF7F4] pb-20">
-      <StoreNav />
-      <CartDrawer initialDelivery={deliveryCharge} />
+    <button className="bb-nav-cart" onClick={openDrawer} aria-label="Open cart">
+      <ShoppingBag size={20} />
+      {mounted && itemCount() > 0 ? <span className="bb-cart-badge">{itemCount() > 9 ? "9+" : itemCount()}</span> : null}
+    </button>
+  );
+}
+
+function GlassNav() {
+  return (
+    <nav className="bb-nav">
+      <div className="bb-nav-inner bb-glass">
+        <Link href="/" aria-label="Beauty Bee home">
+          <Image src="/logo.svg" alt="Beauty Bee" width={112} height={44} priority unoptimized />
+        </Link>
+        <div className="bb-nav-links">
+          <a href="#shades">Shades</a>
+          <a href="#why">Why</a>
+          <a href="#bundles">Bundles</a>
+        </div>
+        <CartMiniButton />
+      </div>
+    </nav>
+  );
+}
+
+export default function ShopClient({ products, bundles, settings }: Props) {
+  const tint = primaryTint(products);
+  const shades = useMemo(() => buildShades(tint), [tint]);
+  const [active, setActive] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const { itemCount, subtotal, removeItem, items } = useCartStore();
+  const activeShade = shades[active] ?? shades[0];
+  const supportingProducts = products.filter(product => product.id !== tint?.id);
+  const total = mounted ? subtotal() : 0;
+  const cartCount = mounted ? itemCount() : 0;
+  const visibleItems = mounted ? items : [];
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  if (!tint) {
+    return (
+      <div className="bb-page grid place-items-center px-6 text-center">
+        <Mesh />
+        <div className="bb-glass rounded-[28px] p-8">
+          <Package className="mx-auto text-[var(--bb-berry)]" size={42} />
+          <h1 className="bb-serif mt-4 text-3xl">No products found</h1>
+          <p className="mt-2 text-sm font-semibold text-[var(--bb-ink-soft)]">Add active products in admin to launch the store.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bb-page pb-28">
+      <Mesh />
+      <GlassNav />
+      <CartDrawer
+        initialDelivery={settings.deliveryCharge}
+        initialFreeDeliveryThreshold={settings.freeDeliveryThreshold}
+      />
       <WhatsAppButton />
       <EmailCapture />
 
-      {sections.map(section => {
-        const type = sectionType(section);
-        if (type === "announcement") return <AnnouncementTicker key={section.id} banners={[section]} />;
-        if (type === "hero") return <HeroBanner key={section.id} banner={section} />;
-        if (type === "trust") return <TrustStrip key={section.id} />;
-        if (type === "products") return <ProductSection key={section.id} section={section} products={products} />;
-        if (type === "bundles") return <BundleSection key={section.id} section={section} bundles={bundles} />;
-        if (type === "ingredients") return <IngredientsSection key={section.id} section={section} />;
-        if (type === "reviews") return <ReviewsBlock key={section.id} section={section} />;
-        if (type === "trackLink") return <TrackLinkSection key={section.id} section={section} />;
-        return <PromoSection key={section.id} section={section} deliveryCharge={deliveryCharge} />;
-      })}
+      <main className="bb-shell">
+        <Hero tint={tint} shades={shades} active={active} cartCount={cartCount} />
+        <ShadeExperience tint={tint} shades={shades} active={active} setActive={setActive} />
+
+        {bundles.length > 0 ? (
+          <section className="bb-section" id="bundles">
+            <div className="bb-section-head">
+              <span className="bb-eyebrow">Save More</span>
+              <h2 className="bb-section-title">The Bundle<br /><em>edit.</em></h2>
+              <p className="bb-section-sub">Build a routine or gift the full mood in one tap.</p>
+            </div>
+            <div className="bb-card-list">
+              {bundles.map(bundle => <BundleCard key={bundle.id} bundle={bundle} />)}
+            </div>
+          </section>
+        ) : null}
+
+        <ReelWall />
+        <HowToApply />
+
+        {supportingProducts.length > 0 ? (
+          <section className="bb-section" id="products">
+            <div className="bb-section-head">
+              <span className="bb-eyebrow">Complete the Ritual</span>
+              <h2 className="bb-section-title">More Beauty Bee<br /><em>favorites.</em></h2>
+            </div>
+            <div className="bb-card-list">
+              {supportingProducts.map(product => <ProductCard key={product.id} product={product} />)}
+            </div>
+          </section>
+        ) : null}
+
+        <Reviews />
+        <FAQBlock whatsappNumber={settings.whatsappNumber} />
+
+        {visibleItems.length > 0 ? (
+          <section className="bb-section">
+            <div className="bb-glass rounded-[24px] p-5">
+              <span className="bb-eyebrow">In your bag</span>
+              <div className="mt-4 grid gap-3">
+                {visibleItems.slice(0, 3).map(item => (
+                  <div key={item.key} className="flex items-center gap-3 rounded-2xl bg-white/60 p-3">
+                    <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-[var(--bb-cream-deep)] text-2xl">
+                      {item.imageUrl ? <Image src={item.imageUrl} alt={item.name} width={48} height={48} className="h-full w-full object-cover" /> : item.emoji}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <strong className="block truncate text-sm">{item.name}</strong>
+                      <span className="text-xs font-semibold text-[var(--bb-ink-soft)]">Qty {item.qty} - Rs. {(item.qty * item.unitPrice).toLocaleString()}</span>
+                    </span>
+                    <button className="text-[var(--bb-ink-soft)]" onClick={() => removeItem(item.key)} aria-label={`Remove ${item.name}`}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <Link href="/checkout" className="bb-btn bb-btn-primary mt-5 w-full">Checkout - Rs. {total.toLocaleString()}</Link>
+            </div>
+          </section>
+        ) : null}
+
+        <Footer />
+      </main>
+
+      <StickyBar
+        product={tint}
+        shade={activeShade}
+        total={total}
+        freeDeliveryThreshold={settings.freeDeliveryThreshold}
+      />
     </div>
   );
 }
