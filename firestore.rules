@@ -39,7 +39,7 @@ service cloud.firestore {
 
     match /email_subscribers/{id} {
       allow create: if request.resource.data.email is string
-        && request.resource.data.email.size() <= 120;
+        && request.resource.data.email.size() <= 254;
       allow read, update, delete: if isAdmin();
     }
 

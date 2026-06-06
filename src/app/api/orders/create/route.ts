@@ -8,7 +8,7 @@ import nodemailer from "nodemailer";
 import { createOrder, getProducts, getBundles, getStoreSettings } from "@/lib/firestore";
 import { createPostexOrder } from "@/lib/postex";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, updateDoc, increment, query, where } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import type { Bundle, Order, OrderItem, Product } from "@/types";
 
 const DELIVERY_CHARGE_FALLBACK = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
@@ -17,6 +17,17 @@ const MAX_ITEMS_PER_ORDER = 30;
 const MAX_QTY_PER_LINE = 20;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^03\d{9}$/;
+
+type PromoCodeDoc = {
+  code: string;
+  type: "percent" | "fixed";
+  value: number;
+  active?: boolean;
+  expiresAt?: string;
+  maxUses?: number;
+  usedCount?: number;
+  minOrder?: number;
+};
 
 function cleanText(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -231,21 +242,17 @@ export async function POST(req: NextRequest) {
     if (promoCode && typeof promoCode === "string") {
       const promoStartedAt = Date.now();
       const normalised = promoCode.trim().toUpperCase();
-      const promoSnap = await getDocs(
-        query(collection(db, "promoCodes"), where("code", "==", normalised), where("active", "!=", false))
-      );
+      const promoSnap = await getDoc(doc(db, "promoCodes", normalised)).catch(() => null);
       mark("promoMs", promoStartedAt);
-      const promoDocs = promoSnap.docs.map(d => ({
-        id: d.id,
-        ...(d.data() as {
-          code: string; type: "percent" | "fixed"; value: number;
-          active?: boolean; expiresAt?: string; maxUses?: number;
-          usedCount?: number; minOrder?: number;
-        }),
-      }));
-      const promo = promoDocs[0];
+      const promo = promoSnap?.exists()
+        ? {
+          id: promoSnap.id,
+          ...(promoSnap.data() as PromoCodeDoc),
+        }
+        : null;
       if (
         promo &&
+        promo.active !== false &&
         !(promo.expiresAt && new Date(promo.expiresAt) < new Date()) &&
         !(promo.maxUses && (promo.usedCount ?? 0) >= promo.maxUses) &&
         !(promo.minOrder && subtotal < promo.minOrder)
