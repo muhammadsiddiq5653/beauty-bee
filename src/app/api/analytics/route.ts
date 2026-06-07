@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+export const runtime = "nodejs";
+
 const EVENT_RE = /^[a-z0-9_:-]{1,80}$/i;
 
 export async function POST(req: NextRequest) {
@@ -32,7 +34,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err: unknown) {
+    console.warn("[analytics] event skipped", {
+      error: err instanceof Error ? err.message : "Unknown analytics write error",
+      hint: "If this is PERMISSION_DENIED in production, deploy firestore.rules to Firebase; Vercel deploys do not update Firestore rules.",
+    });
     return new NextResponse(null, { status: 204 });
   }
 }

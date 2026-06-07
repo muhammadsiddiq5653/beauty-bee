@@ -32,7 +32,9 @@ export const metadata: Metadata = {
 
 function cleanTrackingId(value: string | undefined) {
   const id = value?.trim();
-  return id && id !== "null" && id !== "undefined" ? id : "";
+  if (!id || id === "null" || id === "undefined") return "";
+  if (/^x+$/i.test(id)) return "";
+  return id;
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
