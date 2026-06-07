@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { ShoppingBag, Package } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 
@@ -20,7 +19,8 @@ export default function StoreNav() {
     <header className="bb-nav">
       <div className="bb-nav-inner bb-glass">
         <Link href="/" className="flex items-center">
-          <Image src="/logo.svg" alt="Beauty Bee" width={110} height={44} priority unoptimized />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Beauty Bee" style={{ width: 44, height: 44, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
         </Link>
 
         <nav className="flex items-center gap-4">

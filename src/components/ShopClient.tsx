@@ -535,7 +535,8 @@ function GlassNav() {
     <nav className="bb-nav">
       <div className="bb-nav-inner bb-glass">
         <Link href="/" aria-label="Beauty Bee home">
-          <Image src="/logo.svg" alt="Beauty Bee" width={112} height={44} priority unoptimized />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Beauty Bee" style={{ width: 44, height: 44, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
         </Link>
         <div className="bb-nav-links">
           <a href="#shades">Shades</a>

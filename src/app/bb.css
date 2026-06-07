@@ -162,6 +162,15 @@
   justify-content: space-between;
 }
 
+.bb-nav-inner img[alt="Beauty Bee"] {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+
 .bb-nav-links {
   display: none;
   gap: 18px;
