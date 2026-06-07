@@ -9,6 +9,7 @@ import {
   ShoppingBag, Sparkles, Star, Trash2
 } from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
+import DuoShadeModal from "@/components/DuoShadeModal";
 import EmailCapture from "@/components/EmailCapture";
 import { useCartStore } from "@/store/cart";
 import type { Bundle, Product, Shade } from "@/types";
@@ -332,33 +333,58 @@ function ProductCard({ product }: { product: Product }) {
   );
 }
 
-function BundleCard({ bundle }: { bundle: Bundle }) {
+function BundleCard({ bundle, shadeOptions }: { bundle: Bundle; shadeOptions: Shade[] }) {
   const { addBundle } = useCartStore();
   const save = Math.max(0, bundle.oldPrice - bundle.price);
+  const [modalOpen, setModalOpen] = useState(false);
+  const needsShades = (bundle.shadeSlotCount ?? 0) > 0 && shadeOptions.length > 0;
+
+  function handleClick() {
+    if (needsShades) {
+      setModalOpen(true);
+    } else {
+      addBundle(bundle);
+    }
+  }
 
   return (
-    <article className="bb-product-card bb-glass" id={bundle.id}>
-      <Link href={`/bundle/${bundle.id}`} className="bb-product-media">
-        {bundle.imageUrl ? (
-          <Image src={bundle.imageUrl} alt={bundle.name} fill sizes="(max-width: 720px) 100vw, 520px" className="object-cover" />
-        ) : (
-          <div className="grid h-full place-items-center bg-[var(--bb-cream-deep)] text-7xl">{bundle.emoji}</div>
-        )}
-      </Link>
-      <div className="bb-product-body">
-        <span className="bb-eyebrow">Save More</span>
-        <h3 className="bb-serif mt-2 text-3xl leading-none text-[var(--bb-ink)]">{bundle.name}</h3>
-        <p className="mt-2 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{bundle.includes}</p>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <strong className="bb-serif text-3xl text-[var(--bb-berry)]">Rs. {bundle.price.toLocaleString()}</strong>
-          {bundle.oldPrice ? <s className="text-sm font-semibold text-[var(--bb-ink-soft)]">Rs. {bundle.oldPrice.toLocaleString()}</s> : null}
-          {save > 0 ? <span className="rounded-full bg-[var(--bb-berry)] px-3 py-1 text-xs font-black text-white">Save Rs. {save.toLocaleString()}</span> : null}
+    <>
+      <article className="bb-product-card bb-glass" id={bundle.id}>
+        <Link href={`/bundle/${bundle.id}`} className="bb-product-media">
+          {bundle.imageUrl ? (
+            <Image src={bundle.imageUrl} alt={bundle.name} fill sizes="(max-width: 720px) 100vw, 520px" className="object-cover" />
+          ) : (
+            <div className="grid h-full place-items-center bg-[var(--bb-cream-deep)] text-7xl">{bundle.emoji}</div>
+          )}
+        </Link>
+        <div className="bb-product-body">
+          <span className="bb-eyebrow">Save More</span>
+          <h3 className="bb-serif mt-2 text-3xl leading-none text-[var(--bb-ink)]">{bundle.name}</h3>
+          <p className="mt-2 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">{bundle.includes}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <strong className="bb-serif text-3xl text-[var(--bb-berry)]">Rs. {bundle.price.toLocaleString()}</strong>
+            {bundle.oldPrice ? <s className="text-sm font-semibold text-[var(--bb-ink-soft)]">Rs. {bundle.oldPrice.toLocaleString()}</s> : null}
+            {save > 0 ? <span className="rounded-full bg-[var(--bb-berry)] px-3 py-1 text-xs font-black text-white">Save Rs. {save.toLocaleString()}</span> : null}
+          </div>
+          <button className="bb-btn bb-btn-primary mt-5 w-full" onClick={handleClick}>
+            {needsShades ? "Pick shades →" : <>Get the bundle <ArrowRight size={17} /></>}
+          </button>
         </div>
-        <button className="bb-btn bb-btn-primary mt-5 w-full" onClick={() => addBundle(bundle)}>
-          Get the bundle <ArrowRight size={17} />
-        </button>
-      </div>
-    </article>
+      </article>
+
+      {modalOpen && (
+        <DuoShadeModal
+          bundle={bundle}
+          shadeOptions={shadeOptions}
+          shadeSlotCount={bundle.shadeSlotCount ?? 2}
+          onClose={() => setModalOpen(false)}
+          onConfirm={(shadeLabel) => {
+            addBundle(bundle, shadeLabel);
+            setModalOpen(false);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -575,7 +601,7 @@ export default function ShopClient({ products, bundles, settings }: Props) {
               <p className="bb-section-sub">Build a routine or gift the full mood in one tap.</p>
             </div>
             <div className="bb-card-list">
-              {bundles.map(bundle => <BundleCard key={bundle.id} bundle={bundle} />)}
+              {bundles.map(bundle => <BundleCard key={bundle.id} bundle={bundle} shadeOptions={shades} />)}
             </div>
           </section>
         ) : null}

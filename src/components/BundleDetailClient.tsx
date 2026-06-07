@@ -36,6 +36,8 @@ const SLOT_LABELS = ["First Tint", "Second Tint", "Third Tint", "Fourth Tint"];
 export default function BundleDetailClient({ bundle, deliveryCharge, shadeOptions = [], shadeSlotCount = 0 }: Props) {
   const [added, setAdded] = useState(false);
   const [selectedShades, setSelectedShades] = useState<string[]>([]);
+  const [activeSlot, setActiveSlot] = useState(0);
+  const [poppedShade, setPoppedShade] = useState<string | null>(null);
   const { addBundle, items } = useCartStore();
   const hasShades = shadeSlotCount > 0 && shadeOptions.length > 0;
   const shadesComplete = !hasShades || selectedShades.filter(Boolean).length === shadeSlotCount;
@@ -128,49 +130,134 @@ export default function BundleDetailClient({ bundle, deliveryCharge, shadeOption
             {hasShades ? (
               <div className="mt-6 border-t border-[rgba(155,43,71,0.08)] pt-5">
                 <h2 className="bb-serif text-2xl text-[var(--bb-ink)]">Choose Your Shades</h2>
-                <p className="mt-1 text-sm font-semibold text-[var(--bb-ink-soft)]">Pick one shade for each tint in this duo.</p>
-                {Array.from({ length: shadeSlotCount }, (_, slotIdx) => (
-                  <div key={slotIdx} className="mt-5">
-                    <p className="mb-2 text-sm font-black text-[var(--bb-ink)]">
-                      {SLOT_LABELS[slotIdx] ?? `Tint ${slotIdx + 1}`}
-                      {selectedShades[slotIdx] ? <span className="ml-1 text-[var(--bb-berry)]">— {selectedShades[slotIdx]}</span> : null}
-                    </p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {shadeOptions.map(shade => {
-                        const isSelected = selectedShades[slotIdx] === shade.name;
-                        return (
-                          <button
-                            key={shade.name}
-                            onClick={() => {
-                              const updated = [...selectedShades];
-                              updated[slotIdx] = shade.name;
-                              setSelectedShades(updated);
-                            }}
-                            className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-bold transition-all ${
-                              isSelected
-                                ? "border-[var(--bb-berry)] bg-[rgba(155,43,71,0.07)] text-[var(--bb-ink)]"
-                                : "border-transparent bg-white/60 text-[var(--bb-ink-soft)] hover:bg-white/80"
-                            }`}
+                <p className="mt-1 text-sm font-semibold text-[var(--bb-ink-soft)]">
+                  {shadeSlotCount === 1 ? "Tap a shade below." : "One shade per tint — tap to pick."}
+                </p>
+
+                {/* Slot indicators (duo / trio only) */}
+                {shadeSlotCount > 1 && (
+                  <div className="mt-5 flex items-center gap-5">
+                    {Array.from({ length: shadeSlotCount }, (_, i) => {
+                      const sel = shadeOptions.find(s => s.name === selectedShades[i]);
+                      const isActive = activeSlot === i;
+                      return (
+                        <button key={i} onClick={() => setActiveSlot(i)} className="flex flex-col items-center gap-1.5">
+                          <div
+                            className={`relative flex h-14 w-14 items-center justify-center rounded-full transition-all duration-300
+                              ${sel ? "shadow-md" : "border-[2px] border-dashed border-[rgba(155,43,71,0.3)]"}
+                              ${isActive ? "ring-[3px] ring-[var(--bb-berry)] ring-offset-2 scale-110" : ""}
+                            `}
+                            style={sel ? {
+                              background: sel.hex ?? "#A52647",
+                              boxShadow: `0 4px 14px ${sel.hex ?? "#A52647"}50`,
+                            } : {}}
                           >
-                            <span
-                              className="h-6 w-6 flex-shrink-0 rounded-full border-2 border-white shadow-sm"
-                              style={{ background: shade.hex ?? "#A52647" }}
-                            />
-                            <span className="flex-1">{shade.name}</span>
-                            {isSelected ? (
-                              <span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--bb-berry)] text-white">
-                                <Check size={13} />
-                              </span>
-                            ) : null}
-                          </button>
+                            {sel
+                              ? <Check size={18} strokeWidth={3} className="text-white drop-shadow-sm" />
+                              : <span className="select-none text-xl font-black text-[var(--bb-berry)] opacity-25">?</span>
+                            }
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${
+                            isActive ? "text-[var(--bb-berry)]" : "text-[var(--bb-ink-soft)]"
+                          }`}>
+                            {SLOT_LABELS[i] ?? `Tint ${i + 1}`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {shadesComplete && (
+                      <div className="ml-auto flex -space-x-1.5 animate-fade-in">
+                        {selectedShades.map((name, i) => {
+                          const s = shadeOptions.find(x => x.name === name);
+                          return <div key={i} className="h-5 w-5 rounded-full border-[1.5px] border-white shadow-sm" style={{ background: s?.hex }} />;
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Step label */}
+                {shadeSlotCount > 1 && (
+                  <div className="mt-4">
+                    <span className="inline-block rounded-full bg-[rgba(155,43,71,0.08)] px-3 py-1 text-[11px] font-black uppercase tracking-wider text-[var(--bb-berry)]">
+                      {shadesComplete ? "Combo ready ✓" : `Picking ${SLOT_LABELS[activeSlot] ?? `Tint ${activeSlot + 1}`}`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Shade circles */}
+                <div className="mt-5 grid grid-cols-3 gap-3">
+                  {shadeOptions.map((shade) => {
+                    const slotForThis = selectedShades.findIndex(s => s === shade.name);
+                    const effectiveSlot = shadeSlotCount === 1 ? 0 : activeSlot;
+                    const isActive = selectedShades[effectiveSlot] === shade.name;
+                    const isPopping = poppedShade === shade.name;
+                    return (
+                      <button
+                        key={shade.name}
+                        onClick={() => {
+                          const updated = [...selectedShades];
+                          updated[effectiveSlot] = shade.name;
+                          setSelectedShades(updated);
+                          setPoppedShade(shade.name);
+                          setTimeout(() => setPoppedShade(null), 350);
+                          if (shadeSlotCount > 1) {
+                            const next = Array.from({ length: shadeSlotCount }, (_, i) => i)
+                              .find(i => i !== effectiveSlot && !updated[i]);
+                            if (next !== undefined) setTimeout(() => setActiveSlot(next), 120);
+                          }
+                        }}
+                        className="group flex flex-col items-center gap-2"
+                      >
+                        <div
+                          className={`relative flex h-[68px] w-[68px] items-center justify-center rounded-full border-[4px] transition-all duration-200 active:scale-90
+                            ${isPopping ? "animate-swatch-pop" : ""}
+                            ${isActive
+                              ? "border-[var(--bb-berry)] scale-[1.1]"
+                              : "border-white hover:scale-[1.06]"
+                            }
+                          `}
+                          style={{
+                            background: shade.hex ?? "#A52647",
+                            boxShadow: isActive
+                              ? `0 6px 18px ${shade.hex ?? "#A52647"}55, inset 0 -2px 5px rgba(0,0,0,0.12)`
+                              : "0 4px 12px rgba(0,0,0,0.13), inset 0 -2px 5px rgba(0,0,0,0.08)",
+                          }}
+                        >
+                          {isActive && (
+                            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/[0.2]">
+                              <Check size={24} strokeWidth={3} className="text-white" />
+                            </div>
+                          )}
+                          {slotForThis >= 0 && !isActive && shadeSlotCount > 1 && (
+                            <div className="absolute -right-0.5 -top-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[var(--bb-berry)] shadow">
+                              <span className="text-[9px] font-black text-white">{slotForThis + 1}</span>
+                            </div>
+                          )}
+                        </div>
+                        <span className={`text-xs font-black leading-tight text-center transition-colors ${
+                          isActive ? "text-[var(--bb-berry)]" : "text-[var(--bb-ink-soft)]"
+                        }`}>
+                          {shade.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Combo preview */}
+                {shadesComplete && shadeLabel ? (
+                  <div className="mt-4 flex items-center gap-3 rounded-2xl bg-[rgba(155,43,71,0.05)] px-4 py-3 animate-bounce-in">
+                    <div className="flex -space-x-2">
+                      {selectedShades.map((name, i) => {
+                        const s = shadeOptions.find(x => x.name === name);
+                        return (
+                          <div key={i} className="h-7 w-7 rounded-full border-2 border-white shadow-sm" style={{ background: s?.hex ?? "#A52647" }} />
                         );
                       })}
                     </div>
-                  </div>
-                ))}
-                {shadesComplete && shadeLabel ? (
-                  <div className="mt-4 rounded-2xl bg-[rgba(155,43,71,0.06)] px-4 py-3 text-sm font-black text-[var(--bb-berry)]">
-                    Your combination: {shadeLabel}
+                    <span className="text-sm font-black text-[var(--bb-ink)]">{shadeLabel}</span>
+                    <Check size={15} className="ml-auto text-green-600" strokeWidth={2.5} />
                   </div>
                 ) : null}
               </div>
