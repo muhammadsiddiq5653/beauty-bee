@@ -616,6 +616,10 @@
   pointer-events: none;
 }
 
+body.modal-open .bb-sticky {
+  display: none;
+}
+
 .bb-sticky-row {
   display: flex;
   align-items: center;

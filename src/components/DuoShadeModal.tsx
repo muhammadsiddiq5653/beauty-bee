@@ -19,6 +19,11 @@ export default function DuoShadeModal({ bundle, shadeOptions, shadeSlotCount, on
   const [activeSlot, setActiveSlot] = useState(0);
   const [poppedShade, setPoppedShade] = useState<string | null>(null);
 
+  useEffect(() => {
+    document.body.classList.add("modal-open");
+    return () => document.body.classList.remove("modal-open");
+  }, []);
+
   const filled = selectedShades.filter(Boolean).length;
   const shadesComplete = filled === shadeSlotCount;
   const shadeLabel = selectedShades.filter(Boolean).join(" + ");
