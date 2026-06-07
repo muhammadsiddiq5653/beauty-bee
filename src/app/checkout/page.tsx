@@ -104,8 +104,9 @@ export default function CheckoutPage() {
     if (!items.length) return "Your cart is empty.";
     if (!form.customerName.trim()) return "Please enter your full name.";
     if (!/^03\d{9}$/.test(form.customerPhone)) return "Please enter a valid phone number (03XXXXXXXXX).";
-    if (!form.customerEmail.trim()) return "Please enter your email address.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.customerEmail)) return "Please enter a valid email address.";
+    if (form.customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.customerEmail)) {
+      return "Please enter a valid email address.";
+    }
     if (!form.deliveryAddress.trim()) return "Please enter your delivery address.";
     if (!form.cityName) return "Please select your city.";
     return null;
@@ -174,7 +175,7 @@ export default function CheckoutPage() {
             </span>
             <h1 className="bb-serif mt-6 text-5xl leading-none">Order Confirmed!</h1>
             <p className="mt-3 text-sm font-semibold leading-relaxed text-[var(--bb-ink-soft)]">
-              Your order is confirmed. A confirmation email with your order details has been sent to you.
+              Your order is confirmed. If you provided an email address, a confirmation will be sent to you.
             </p>
             <div className="mt-7 grid gap-3">
               <div className="rounded-2xl bg-white/60 p-4">
@@ -316,7 +317,7 @@ export default function CheckoutPage() {
                   <input className="bb-input" type="tel" maxLength={11} value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} placeholder="03XXXXXXXXX" />
                 </div>
                 <div className="bb-form-field">
-                  <label>Email Address *</label>
+                  <label>Email Address <span className="font-normal text-[var(--bb-ink-soft)]">(optional — for order confirmation)</span></label>
                   <input className="bb-input" type="email" value={form.customerEmail} onChange={e => setForm({ ...form, customerEmail: e.target.value })} placeholder="fatima@gmail.com" />
                 </div>
                 <div className="bb-form-field">

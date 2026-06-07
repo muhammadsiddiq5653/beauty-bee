@@ -9,7 +9,7 @@ interface CartState {
   items: CartItem[];
   // Actions
   addItem: (product: Product, qty: number, shade?: string) => void;
-  addBundle: (bundle: Bundle) => void;
+  addBundle: (bundle: Bundle, shade?: string) => void;
   removeItem: (key: string) => void;
   updateQty: (key: string, qty: number) => void;
   clearCart: () => void;
@@ -68,8 +68,8 @@ export const useCartStore = create<CartState>()(
         get().openDrawer();
       },
 
-      addBundle: (bundle) => {
-        const key = `bundle_${bundle.id}`;
+      addBundle: (bundle, shade) => {
+        const key = `bundle_${bundle.id}` + (shade ? `_${shade.replace(/\s+/g, "_")}` : "");
         const existing = get().items.find(i => i.key === key);
         if (existing) {
           set(s => ({
@@ -84,9 +84,10 @@ export const useCartStore = create<CartState>()(
               {
                 key,
                 productId: bundle.id,
-                name: bundle.name,
+                name: bundle.name + (shade ? ` (${shade})` : ""),
                 qty: 1,
                 unitPrice: bundle.price,
+                shade,
                 emoji: bundle.emoji,
                 imageUrl: bundle.imageUrl,
                 isBundle: true,
@@ -96,7 +97,7 @@ export const useCartStore = create<CartState>()(
         }
         trackPixel("AddToCart", {
           content_ids: [bundle.id],
-          content_name: bundle.name,
+          content_name: bundle.name + (shade ? ` (${shade})` : ""),
           content_type: "product",
           contents: [{ id: bundle.id, quantity: 1 }],
           value: bundle.price,

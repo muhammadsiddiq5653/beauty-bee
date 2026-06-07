@@ -303,7 +303,7 @@ function BundleForm({ initial, onSave, onCancel, saving }: {
   saving: boolean;
 }) {
   const [form, setForm] = useState<Partial<Bundle>>({
-    name: "", includes: "", price: 0, oldPrice: 0, emoji: "🎁", productIds: [], active: true,
+    name: "", includes: "", price: 0, oldPrice: 0, emoji: "🎁", productIds: [], active: true, shadeSlotCount: 0,
     ...initial,
   });
   const [media, setMedia] = useState<MediaItem[]>(initial?.media ?? (initial?.imageUrl ? [{ type: "image" as const, url: initial.imageUrl }] : []));
@@ -321,6 +321,7 @@ function BundleForm({ initial, onSave, onCancel, saving }: {
       active: form.active ?? true,
       imageUrl: media[0]?.type === "image" ? media[0].url : form.imageUrl,
       media: media.length > 0 ? media : undefined,
+      shadeSlotCount: Number(form.shadeSlotCount ?? 0),
     });
   }
 
@@ -360,6 +361,17 @@ function BundleForm({ initial, onSave, onCancel, saving }: {
             {form.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
             {form.active ? "Active" : "Inactive"}
           </button>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-gray-500 mb-1 block">Shade Picks Required</label>
+          <select value={form.shadeSlotCount ?? 0} onChange={e => setForm(f => ({ ...f, shadeSlotCount: Number(e.target.value) }))}
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+            <option value={0}>None (no shade selection)</option>
+            <option value={1}>1 shade</option>
+            <option value={2}>2 shades (Duo)</option>
+            <option value={3}>3 shades (Trio)</option>
+          </select>
+          <p className="mt-1 text-[10px] text-gray-400">How many shades the customer must pick when adding this bundle to cart.</p>
         </div>
       </div>
 

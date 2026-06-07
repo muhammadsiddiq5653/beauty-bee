@@ -192,8 +192,8 @@ export async function POST(req: NextRequest) {
     if (!PHONE_RE.test(cleanPhone)) {
       return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
     }
-    if (!cleanEmail || !EMAIL_RE.test(cleanEmail)) {
-      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    if (cleanEmail && !EMAIL_RE.test(cleanEmail)) {
+      return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
     }
     if (items.length > MAX_ITEMS_PER_ORDER) {
       return NextResponse.json({ error: "Too many items in one order" }, { status: 400 });

@@ -42,6 +42,7 @@ export interface Bundle {
   imageUrl?: string;
   media?: MediaItem[];
   createdAt?: string;
+  shadeSlotCount?: number;  // how many shade picks the customer must make (0 = none)
 }
 
 // ─── Cart ───────────────────────────────────────────────────────
