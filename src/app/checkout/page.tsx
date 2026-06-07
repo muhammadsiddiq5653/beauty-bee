@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -17,10 +17,23 @@ import { useCartStore } from "@/store/cart";
 const DELIVERY_DEFAULT = parseInt(process.env.NEXT_PUBLIC_DELIVERY_CHARGE ?? "200");
 
 const FALLBACK_CITIES = [
-  "Abbottabad","Attock","Badin","Bahawalpur","Bannu","Chakwal",
-  "Dera Ghazi Khan","Faisalabad","Gujranwala","Gujrat","Hyderabad",
-  "Islamabad","Karachi","Lahore","Mardan","Multan","Peshawar",
-  "Quetta","Rawalpindi","Sahiwal","Sargodha","Sialkot","Sukkur",
+  "Abbottabad","Attock","Badin","Bahawalpur","Bannu","Batkhela",
+  "Battagram","Bhakkar","Buner","Chaman","Charsadda","Chakwal",
+  "Chiniot","Chishtian","Dadu","Dera Ghazi Khan","Dera Ismail Khan",
+  "Faisalabad","Ghotki","Gilgit","Gujranwala","Gujrat","Hafizabad",
+  "Hangu","Haripur","Hub","Hunza","Hyderabad","Islamabad",
+  "Jacobabad","Jhelum","Jhang","Kambar","Karak","Karachi","Kasur",
+  "Khairpur","Khanewal","Khushab","Khuzdar","Kohat","Kotli",
+  "Lahore","Lakki Marwat","Larkana","Layyah","Lodhran","Loralai",
+  "Malakand","Mandi Bahauddin","Mansehra","Mardan","Matiari",
+  "Mingora","Mirpur AJK","Mirpur Khas","Multan","Muzaffarabad",
+  "Muzaffargarh","Nankana Sahib","Narowal","Nawabshah","Nowshera",
+  "Nushki","Okara","Pakpattan","Panjgur","Peshawar","Quetta",
+  "Rahim Yar Khan","Rajanpur","Rawalakot","Rawalpindi","Sahiwal",
+  "Sanghar","Sargodha","Shaheed Benazirabad","Sheikhupura",
+  "Shikarpur","Sialkot","Sibi","Skardu","Sukkur","Swabi","Swat",
+  "Tank","Tando Adam","Tando Allahyar","Thatta","Toba Tek Singh",
+  "Turbat","Umerkot","Vehari","Wazirabad","Zhob",
 ].sort();
 
 type SuccessData = {
@@ -59,11 +72,17 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<SuccessData | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
+  const [citySearch, setCitySearch] = useState("");
+  const [cityOpen, setCityOpen] = useState(false);
+  const cityRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
 
   const sub = subtotal();
   const discount = promo?.discount ?? 0;
   const delivery = freeDeliveryThreshold > 0 && sub >= freeDeliveryThreshold ? 0 : baseDelivery;
   const finalTotal = Math.max(0, sub + delivery - discount);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     trackEvent("checkout_view", { items: itemCount(), subtotal: subtotal() });
@@ -99,6 +118,31 @@ export default function CheckoutPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (cityRef.current && !cityRef.current.contains(e.target as Node)) {
+        setCityOpen(false);
+        if (!form.cityName) setCitySearch("");
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.cityName]);
+
+  const filteredCities = citySearch
+    ? cities
+        .filter(c => c.toLowerCase().includes(citySearch.toLowerCase()))
+        .sort((a, b) => {
+          const q = citySearch.toLowerCase();
+          const as = a.toLowerCase().startsWith(q);
+          const bs = b.toLowerCase().startsWith(q);
+          if (as && !bs) return -1;
+          if (!as && bs) return 1;
+          return a.localeCompare(b);
+        })
+    : cities;
 
   function validate() {
     if (!items.length) return "Your cart is empty.";
@@ -203,7 +247,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (itemCount() === 0) {
+  if (mounted && itemCount() === 0) {
     return (
       <div className="bb-page">
         <Mesh />
@@ -325,12 +369,41 @@ export default function CheckoutPage() {
                   <textarea className="bb-input min-h-24 resize-none" value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })} placeholder="House No., street, area, landmark..." />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bb-form-field">
+                  <div className="bb-form-field" ref={cityRef}>
                     <label>City *</label>
-                    <select className="bb-input" value={form.cityName} onChange={e => setForm({ ...form, cityName: e.target.value })}>
-                      <option value="">Select city</option>
-                      {cities.map(city => <option key={city} value={city}>{city}</option>)}
-                    </select>
+                    <div className="relative">
+                      <input
+                        className="bb-input"
+                        placeholder="Type to search city…"
+                        autoComplete="off"
+                        value={citySearch || form.cityName}
+                        onFocus={() => { setCityOpen(true); setCitySearch(""); }}
+                        onChange={e => {
+                          setCitySearch(e.target.value);
+                          setCityOpen(true);
+                          setForm(f => ({ ...f, cityName: "" }));
+                        }}
+                      />
+                      {cityOpen && (
+                        <ul className="absolute z-50 left-0 right-0 mt-1 max-h-52 overflow-y-auto rounded-xl border border-[color-mix(in_srgb,var(--bb-berry)_20%,transparent)] bg-white shadow-lg">
+                          {filteredCities.length > 0 ? filteredCities.map(city => (
+                            <li
+                              key={city}
+                              onMouseDown={() => {
+                                setForm(f => ({ ...f, cityName: city }));
+                                setCitySearch("");
+                                setCityOpen(false);
+                              }}
+                              className="cursor-pointer px-3 py-2 text-sm font-semibold hover:bg-[color-mix(in_srgb,var(--bb-berry)_8%,transparent)]"
+                            >
+                              {city}
+                            </li>
+                          )) : (
+                            <li className="px-3 py-2 text-sm text-[var(--bb-ink-soft)]">No cities found</li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
                   </div>
                   <div className="bb-form-field">
                     <label>Payment</label>
